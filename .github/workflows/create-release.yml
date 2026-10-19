@@ -10,6 +10,7 @@ on:
 
 jobs:
   lean-release-tag:
+    if: github.event.before != '0000000000000000000000000000000000000000'
     name: Add Lean release tag
     runs-on: ubuntu-latest
     permissions:
