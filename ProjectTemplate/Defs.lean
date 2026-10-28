@@ -1,6 +1,7 @@
 import Mathlib.Order.Basic
 import Mathlib.Data.Fintype.Powerset
 import Mathlib.Data.Finset.Basic
+set_option linter.style.header false
 
 /-!
 This creates the n-boolean cube as a poset under subset inclusion.
