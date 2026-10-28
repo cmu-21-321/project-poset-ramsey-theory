@@ -9,9 +9,14 @@ Vertices are elements of P(n).
 -/
 
 def BooleanLattice (n : ℕ) : Type := Finset (Fin n)
-
 instance (n : ℕ) : PartialOrder (BooleanLattice n) :=
   inferInstanceAs (PartialOrder (Finset (Fin n)))
+instance (n : ℕ) : Fintype (BooleanLattice n) :=
+  inferInstanceAs (Fintype (Finset (Fin n)))
+
+theorem BooleanLatticeCard (n : ℕ) : Fintype.card (BooleanLattice n) = 2 ^ n := by
+  change Fintype.card (Finset (Fin n)) = 2 ^ n
+  simp
 
 /-
 This sets up the n-diamond as a poset and proves that the relation satsifies the poset axioms.
@@ -66,10 +71,17 @@ instance (n : ℕ) : PartialOrder (Diamond n) where
   le_trans := DiamondTrans
   le_antisymm := DiamondAntisymm
 
+
+
+--Wedges/Fans. Theorem about fan cardinality is included to make math easier.
 def Wedge (n : ℕ) : Type := Fin (n + 1)
+instance (n : ℕ) : Fintype (Wedge n) := inferInstanceAs (Fintype (Fin (n + 1)))
+
+theorem WedgeCard (n : ℕ) : Fintype.card (Wedge n) = n + 1 :=
+  Fintype.card_fin (n + 1)
 
 def WedgeOrder {n : ℕ} : Wedge n → Wedge n → Prop :=
-  fun x y ↦ y.val = n + 1 ∨ x.val = y.val
+  fun x y ↦ y.val = n ∨ x.val = y.val
 
 theorem WedgeRefl {n : ℕ} : ∀ (a : Wedge n), WedgeOrder a a := by
   intro a
