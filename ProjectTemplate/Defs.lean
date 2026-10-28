@@ -29,8 +29,18 @@ theorem DiamondRefl {n : ℕ} : ∀ (a : Diamond n), DiamondOrder a a := by
 
 theorem DiamondTrans {n : ℕ} : ∀ (a b c : Diamond n),
     DiamondOrder a b → DiamondOrder b c → DiamondOrder a c := by
-  sorry
-  /- lots of casework, will do later -/
+  intro a b c hab hbc
+  rcases hab with abot | btop | equal
+  · exact Or.inl abot
+  · rcases hbc with bbot | ctop | equal
+    · rw [bbot] at btop
+      trivial
+    · exact Or.inr (Or.inl ctop)
+    · rw [equal] at btop
+      exact Or.inr (Or.inl btop)
+  · unfold DiamondOrder
+    rw [equal]
+    exact hbc
 
 theorem DiamondAntisymm {n : ℕ} : ∀ (a b : Diamond n),
     DiamondOrder a b → DiamondOrder b a → a = b := by
@@ -55,6 +65,43 @@ instance (n : ℕ) : PartialOrder (Diamond n) where
   le_trans := DiamondTrans
   le_antisymm := DiamondAntisymm
 
+def Wedge (n : ℕ) : Type := Fin (n + 1)
+
+def WedgeOrder {n : ℕ} : Wedge n → Wedge n → Prop :=
+  fun x y ↦ y.val = n + 1 ∨ x.val = y.val
+
+theorem WedgeRefl {n : ℕ} : ∀ (a : Wedge n), WedgeOrder a a := by
+  intro a
+  exact Or.inr (Fin.val_eq_of_eq (Eq.refl a))
+
+theorem WedgeTrans {n : ℕ} : ∀ (a b c : Wedge n),
+    WedgeOrder a b → WedgeOrder b c → WedgeOrder a c := by
+  intro a b c hab hbc
+  rcases hab with btop | equal
+  · rcases hbc with ctop | equal
+    · exact Or.inl ctop
+    · rw [equal] at btop
+      exact Or.inl btop
+  · unfold WedgeOrder
+    rw [equal]
+    exact hbc
+
+theorem WedgeAntisymm {n : ℕ} : ∀ (a b : Wedge n),
+    WedgeOrder a b → WedgeOrder b a → a = b := by
+  intro a b hab hba
+  apply Fin.eq_of_val_eq
+  rcases hab with btop | equal
+  · rcases hba with atop | equal
+    · rw [btop, atop]
+    · rw [equal]
+  · rw [equal]
+
+instance (n : ℕ) : PartialOrder (Wedge n) where
+  le := WedgeOrder
+  le_refl := WedgeRefl
+  le_trans := WedgeTrans
+  le_antisymm := WedgeAntisymm
+
 def Coloring (k : ℕ) (V : Type) : Type := V → (Fin k)
 
 def IsInducedCopy {P Q : Type} [PartialOrder P] [PartialOrder Q] (f : P → Q) : Prop :=
@@ -63,3 +110,14 @@ def IsInducedCopy {P Q : Type} [PartialOrder P] [PartialOrder Q] (f : P → Q) :
 def HasMonochromeSubposet (P Q : Type) [PartialOrder P] [PartialOrder Q] (k : ℕ)
     (χ : Coloring k Q) : Prop :=
   ∃ (c : Fin k), ∃ (f : P → Q), IsInducedCopy f ∧ ∀ (x : P), χ (f x) = c
+
+def IsMulticolorRamseyUpperBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+  ∀ (n : ℕ), n ≥ N → ∀ (χ : Coloring k (BooleanLattice n)),
+    HasMonochromeSubposet P (BooleanLattice n) k χ
+
+def IsMulticolorRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+  ∀ (n : ℕ), n < N → ∃ (χ : Coloring k (BooleanLattice n)),
+    ¬HasMonochromeSubposet P (BooleanLattice n) k χ
+
+def IsMulticolorRamseyNumber (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+  IsMulticolorRamseyLowerBound P k N ∧ IsMulticolorRamseyUpperBound P k N
