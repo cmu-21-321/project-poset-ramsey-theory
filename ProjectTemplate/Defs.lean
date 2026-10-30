@@ -18,6 +18,15 @@ theorem BooleanLatticeCard (n : ℕ) : Fintype.card (BooleanLattice n) = 2 ^ n :
   change Fintype.card (Finset (Fin n)) = 2 ^ n
   simp
 
+theorem BooleanLatticeIncomparable {n : ℕ} (A B : Finset (Fin n))
+    (hcard : A.card = B.card) (hne : A ≠ B) :
+    ¬ A ≤ B ∧ ¬ B ≤ A := by
+  constructor
+  · intro h
+    exact hne (Finset.eq_of_subset_of_card_le h hcard.ge)
+  · intro h
+    exact hne (Finset.eq_of_subset_of_card_le h hcard.le).symm
+
 /-
 This sets up the n-diamond as a poset and proves that the relation satsifies the poset axioms.
 Underlyingly, we are representing it as a set of n+2 elements, with 0 being the bottom and n+1 being

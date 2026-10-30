@@ -3,6 +3,7 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Fintype.Powerset
 import Mathlib.Data.Finset.Basic
 import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.IntervalCases
 
 
 
@@ -51,11 +52,15 @@ theorem FanBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyNumber (Wedge 2) k
         have := congrArg Fin.val h
         simp [a, b] at this
 
+      --pretty sure this explicit morphism works
       let f : (Wedge 2 → BooleanLattice n) := fun i ↦ if i.val = 0 then ({a} : Finset (Fin n))
                                               else if i.val = 1 then ({b} : Finset (Fin n))
                                               else ({a,b} : Finset (Fin n))
+      --here {a}, {b} are viewed as posets in Booleanlattice n
+
       use f
       constructor
-      · sorry --just need to case on values.
+      · intro a b
+        sorry
       · simp[hχ]
   | succ n hn ih => sorry
