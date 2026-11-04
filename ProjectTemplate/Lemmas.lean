@@ -5,6 +5,9 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.IntervalCases
 
+import Mathlib.Tactic.Linter.Header
+set_option linter.flexible false
+
 
 
 theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
@@ -53,14 +56,24 @@ theorem FanBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyNumber (Wedge 2) k
         simp [a, b] at this
 
       --pretty sure this explicit morphism works
-      let f : (Wedge 2 → BooleanLattice n) := fun i ↦ if i.val = 0 then ({a} : Finset (Fin n))
+      let f : (Wedge 2 → Finset (Fin n)) := fun i ↦ if i.val = 0 then ({a} : Finset (Fin n))
                                               else if i.val = 1 then ({b} : Finset (Fin n))
                                               else ({a,b} : Finset (Fin n))
       --here {a}, {b} are viewed as posets in Booleanlattice n
 
       use f
       constructor
-      · intro a b
-        sorry
+      · intro p q
+        have hp : p.val < 3 := p.isLt
+        have hq : q.val < 3 := q.isLt
+        change WedgeOrder p q ↔ (f p : Finset (Fin n)) ≤ (f q : Finset (Fin n))
+        rcases (by omega : p.val = 0 ∨ p.val = 1 ∨ p.val = 2) with h | h | h <;>
+        rcases (by omega : q.val = 0 ∨ q.val = 1 ∨ q.val = 2) with h' | h' | h' <;>
+        simp [f, WedgeOrder, h, h', hab, hab.symm]
+        intro h
+        apply hab
+        have := Finset.ext_iff.mp h b
+        simp at this
+        exact this.symm
       · simp[hχ]
   | succ n hn ih => sorry
