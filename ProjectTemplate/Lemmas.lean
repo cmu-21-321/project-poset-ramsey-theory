@@ -77,3 +77,47 @@ theorem FanBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyNumber (Wedge 2) k
         exact this.symm
       · simp[hχ]
   | succ n hn ih => sorry
+
+/-
+The mixed Ramsey number used in our main upper bound lemma.
+-/
+def MixedRamseyNumber (a b : ℕ) : ℕ :=
+  match b with
+  | .zero => 2 * a
+  | .succ _ => 2 * a + b + 1
+
+/-
+Our main upper bound lemma: R(Q_2^a, D_2^b) = the number specified above.
+-/
+theorem MainLemma : ∀ (a b : ℕ),
+    IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) a b (MixedRamseyNumber a b) := by
+  sorry
+
+/-
+If we prove the mixed Ramsey upper bound for P and Q but Q has zero colors, this
+immediately implies the single-poset Ramsey upper bound for P.
+-/
+theorem ObviousTheorem {P Q : Type} [PartialOrder P] [PartialOrder Q] {a N : ℕ}:
+    IsMixedRamseyUpperBound P Q a 0 N → IsMulticolorRamseyUpperBound P a N := by
+  sorry
+
+/-
+R(Q_2; k) ≥ 2k.
+-/
+theorem MainTheoremLower : ∀ (k : ℕ), IsMulticolorRamseyLowerBound (Diamond 2) k (2 * k) := by
+  sorry
+
+/-
+R(Q_2; k) ≤ 2k.
+-/
+theorem MainTheoremUpper : ∀ (k : ℕ), IsMulticolorRamseyUpperBound (Diamond 2) k (2 * k) := by
+  sorry
+
+/-
+Our main result: R(Q_2; k) = 2k.
+-/
+theorem MainTheorem : ∀ (k : ℕ), IsMulticolorRamseyNumber (Diamond 2) k (2 * k) := by
+  intro k
+  constructor
+  · exact MainTheoremLower k
+  · exact MainTheoremUpper k
