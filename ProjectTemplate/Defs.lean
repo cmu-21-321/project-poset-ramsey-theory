@@ -29,8 +29,8 @@ theorem BooleanLatticeIncomparable {n : ℕ} (A B : Finset (Fin n))
 
 /-
 This sets up the n-diamond as a poset and proves that the relation satsifies the poset axioms.
-Underlyingly, we are representing it as a set of n+2 elements, with 0 being the bottom and n+1 being
-the top.
+Underlyingly, we are representing it as a set of n+2 elements, with 0 being the bottom
+and n+1 being the top.
 -/
 
 def Diamond (n : ℕ) : Type := Fin (n + 2)
@@ -187,6 +187,8 @@ def IsMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
   ∀ (n : ℕ), n ≥ N → ∀ (χ : Coloring (a + b) (BooleanLattice n)),
   HasSpecifiedMonochromeSubposet P (BooleanLattice n) (a + b) χ (FirstAofK a (a + b)) ∨
   HasSpecifiedMonochromeSubposet P (BooleanLattice n) (a + b) χ (LastBofK b (a + b))
+
+-- The following two definitions are not used in our proof, but are included for completeness.
 
 /-
 Equivalent to the statement that R(P^a, Q^b) ≥ N.
