@@ -19,6 +19,9 @@ theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
 #check Finset.map
 #check Finset.map_injective
 #check Function.Injective.of_comp_iff
+#check Finset.mem_map
+#check Set.mem_of_subset_of_mem
+#check Fin.castLE_injective
 
 def restrict (k m n : ℕ) (h : m ≥ n) : Coloring k (BooleanLattice m) →
     Coloring k (BooleanLattice n) :=
@@ -33,9 +36,7 @@ theorem EnoughToProveUpperAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
   unfold IsMulticolorRamseyUpperBound
   constructor
   · intro hRamsey n hn χ
-    unfold HasMonochromeSubposet
     specialize hRamsey (restrict k n N hn χ)
-    unfold HasMonochromeSubposet at hRamsey
     rcases hRamsey with ⟨c, f, ⟨hfInjective, hInduced⟩, hMonochrome⟩
     use c, Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩ ∘ f
     constructor
@@ -44,10 +45,31 @@ theorem EnoughToProveUpperAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
             (Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩) :=
           Finset.map_injective ⟨Fin.castLE hn, Fin.castLE_injective hn⟩
         exact (Function.Injective.of_comp_iff hInjective f).mpr hfInjective
-      · intro a b
-        sorry
-    · sorry
-  · sorry
+      · intro s t
+        constructor
+        · intro hst x hxs
+          rcases Finset.mem_map.mp hxs with ⟨y, hy, hyx⟩
+          apply Finset.mem_map.mpr
+          use y
+          constructor
+          · exact Set.mem_of_subset_of_mem ((hInduced s t).mp hst) hy
+          · exact hyx
+        · intro hSubset
+          apply (hInduced s t).mpr
+          intro x hxs
+          have h : Fin.castLE hn x ∈ (Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩ ∘ f) s :=
+            Finset.mem_map.mpr ⟨x, hxs, rfl⟩
+          have h2 : Fin.castLE hn x ∈ (Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩ ∘ f) t :=
+            Set.mem_of_subset_of_mem hSubset h
+          apply Finset.mem_map.mp at h2
+          rcases h2 with ⟨a, haft, hax⟩
+          apply Fin.castLE_injective at hax
+          rw [←hax]
+          exact haft
+    · intro x
+      exact hMonochrome x
+  · intro hRamsey
+    exact hRamsey N (Nat.le_refl N)
 
 /-
 States that to prove R(P; k) ≥ N, it's enough to prove that the monochromatic posets can be avoided
