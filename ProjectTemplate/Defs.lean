@@ -145,15 +145,13 @@ def HasMonochromeSubposet (P Q : Type) [PartialOrder P] [PartialOrder Q] (k : �
 Equivalent to the statement that R(P; k) ≤ N.
 -/
 def IsMulticolorRamseyUpperBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
-  ∀ (n : ℕ), n ≥ N → ∀ (χ : Coloring k (BooleanLattice n)),
-    HasMonochromeSubposet P (BooleanLattice n) k χ
+  ∀ (χ : Coloring k (BooleanLattice N)), HasMonochromeSubposet P (BooleanLattice N) k χ
 
 /-
 Equivalent to the statement that R(P; k) ≥ N.
 -/
 def IsMulticolorRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
-  ∀ (n : ℕ), n < N → ∃ (χ : Coloring k (BooleanLattice n)),
-    ¬HasMonochromeSubposet P (BooleanLattice n) k χ
+  ∃ (χ : Coloring k (BooleanLattice N)), ¬HasMonochromeSubposet P (BooleanLattice N) k χ
 
 /-
 Equivalent to the statement that R(P; k) = N.
@@ -183,10 +181,9 @@ def LastBofK (b k : ℕ) : Finset (Fin k) := Finset.univ.filter (fun x ↦ x.val
 Equivalent to the statement that R(P^a, Q^b) ≤ N.
 -/
 def IsMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
-    (a : ℕ) (b : ℕ) (N : ℕ) : Prop :=
-  ∀ (n : ℕ), n ≥ N → ∀ (χ : Coloring (a + b) (BooleanLattice n)),
-  HasSpecifiedMonochromeSubposet P (BooleanLattice n) (a + b) χ (FirstAofK a (a + b)) ∨
-  HasSpecifiedMonochromeSubposet P (BooleanLattice n) (a + b) χ (LastBofK b (a + b))
+    (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∀ (χ : Coloring (a + b) (BooleanLattice N)),
+  HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
+  HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
 -- The following two definitions are not used in our proof, but are included for completeness.
 
@@ -194,10 +191,9 @@ def IsMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
 Equivalent to the statement that R(P^a, Q^b) ≥ N.
 -/
 def IsMixedRamseyLowerBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
-    (a : ℕ) (b : ℕ) (N : ℕ) : Prop :=
-  ∀ (n : ℕ), n < N → ∃ (χ : Coloring (a + b) (BooleanLattice n)),
-  ¬HasSpecifiedMonochromeSubposet P (BooleanLattice n) (a + b) χ (FirstAofK a (a + b)) ∨
-  ¬HasSpecifiedMonochromeSubposet P (BooleanLattice n) (a + b) χ (LastBofK b (a + b))
+    (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∃ (χ : Coloring (a + b) (BooleanLattice N)),
+  ¬HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
+  ¬HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
 /-
 Equivalent to the statement that R(P^a, Q^b) = N.
