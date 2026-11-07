@@ -14,22 +14,17 @@ theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
     ∃! (N : ℕ), IsMulticolorRamseyNumber P k N := by
   sorry
 
-#check Finset.map
-#check Fin.castLE
-#check Finset.map
-#check Finset.map_injective
-#check Function.Injective.of_comp_iff
-#check Finset.mem_map
-#check Set.mem_of_subset_of_mem
-#check Fin.castLE_injective
-
+/-
+Given a k-coloring on a boolean cube Q_m, this defines a k-coloring on a smaller cube Q_n by simply
+restricting the domain and copying over the same colors.
+-/
 def restrict (k m n : ℕ) (h : m ≥ n) : Coloring k (BooleanLattice m) →
     Coloring k (BooleanLattice n) :=
   fun χ x ↦ χ (x.map ⟨Fin.castLE h, Fin.castLE_injective h⟩)
 
 /-
-States that to prove R(P; k) ≤ N, it's enough to prove that the monochromatic posets are forced for
-Q_N specifically.
+States that proving R(P; k) ≤ N is equivalent to proving that the monochromatic posets are forced
+for Q_N specifically.
 -/
 theorem EnoughToProveUpperAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
     IsMulticolorRamseyUpperBound P k N ↔ ∀ n ≥ N, IsMulticolorRamseyUpperBound P k n := by
@@ -76,8 +71,18 @@ States that to prove R(P; k) ≥ N, it's enough to prove that the monochromatic 
 for Q_N specifically.
 -/
 theorem EnoughToProveLowerAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
-    IsMulticolorRamseyLowerBound P k N ↔ ∀ n ≥ N, IsMulticolorRamseyLowerBound P k n := by
-  sorry
+    IsMulticolorRamseyLowerBound P k N ↔ ∀ n ≤ N, IsMulticolorRamseyLowerBound P k n := by
+  constructor
+  · intro hRamsey n hn
+    unfold IsMulticolorRamseyLowerBound
+    by_contra h
+    push Not at h
+    apply (EnoughToProveUpperAtN P k n).mp at h
+    rcases hRamsey with ⟨χ, hχ⟩
+    specialize h N hn.ge χ
+    exact hχ h
+  · intro hRamsey
+    exact hRamsey N (Nat.le_refl N)
 
 theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (Wedge 2) k (k + 1) := by
   induction k, hk using Nat.le_induction with
@@ -171,7 +176,7 @@ lemma MainLemma : ∀ (a b : ℕ), (a ≥ 1 ∨ b ≥ 1) →
 /-
 R(Q_2; k) ≥ 2k.
 -/
-lemma MainTheoremLower : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyLowerBound (Diamond 2) k (2 * k) := by
+lemma MainTheoremLower : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyLowerBound (Diamond 2) k (2*k-1) := by
   sorry
 
 /-

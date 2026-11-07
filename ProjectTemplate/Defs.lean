@@ -157,7 +157,7 @@ def IsMulticolorRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ)
 Equivalent to the statement that R(P; k) = N.
 -/
 def IsMulticolorRamseyNumber (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
-  IsMulticolorRamseyLowerBound P k N ∧ IsMulticolorRamseyUpperBound P k N
+  IsMulticolorRamseyLowerBound P k (N - 1) ∧ IsMulticolorRamseyUpperBound P k N
 
 /-
 Given a k-coloring of poset Q and a specified subset of colors cs, this proposition states
