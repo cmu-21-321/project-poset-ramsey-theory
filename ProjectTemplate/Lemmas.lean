@@ -87,67 +87,46 @@ theorem EnoughToProveLowerAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
 theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (Wedge 2) k (k + 1) := by
   induction k, hk using Nat.le_induction with
   | base =>
-      intro n hn χ
+      intro χ
       use 0
 
       have hχ : χ = fun _ ↦ 0 := by
         funext this
         exact Subsingleton.elim _ _
 
-      have h0 : 0 < n := by omega
-      have h1 : 1 < n := by omega
-      let a : Fin n := ⟨0, h0⟩
-      let b : Fin n := ⟨1, h1⟩
-      let hab : a ≠ b := by
-        intro h
-        have := congrArg Fin.val h
-        simp [a, b] at this
-
       --pretty sure this explicit morphism works
-      let f : (Wedge 2 → Finset (Fin n)) := fun i ↦ if i.val = 0 then ({a} : Finset (Fin n))
-                                              else if i.val = 1 then ({b} : Finset (Fin n))
-                                              else ({a,b} : Finset (Fin n))
-      --here {a}, {b} are viewed as posets in Booleanlattice n
+      let f : (Wedge 2 → Finset (Fin 2)) := fun i ↦ if i.val = 0 then {0}
+                                              else if i.val = 1 then {1}
+                                              else {0,1}
 
+      have hf : ∀ p q : Wedge 2, WedgeOrder p q ↔ f p ⊆ f q := by
+        intro p q
+        obtain ⟨i, hi⟩ := p
+        obtain ⟨j, hj⟩ := q
+        interval_cases i <;> interval_cases j <;> simp [WedgeOrder] <;> decide
       use f
       constructor
-      · intro p q
-        have hp : p.val < 3 := p.isLt
-        have hq : q.val < 3 := q.isLt
-        change WedgeOrder p q ↔ (f p : Finset (Fin n)) ≤ (f q : Finset (Fin n))
-        rcases (by omega : p.val = 0 ∨ p.val = 1 ∨ p.val = 2) with h | h | h <;>
-        rcases (by omega : q.val = 0 ∨ q.val = 1 ∨ q.val = 2) with h' | h' | h' <;>
-        simp [f, WedgeOrder, h, h', hab, hab.symm]
-        intro h
-        apply hab
-        have := Finset.ext_iff.mp h b
-        simp at this
-        exact this.symm
+      · constructor
+        · intro p q hpq
+          apply le_antisymm
+          · exact (hf p q).2 hpq.le
+          · exact (hf q p).2 hpq.symm.le
+        · intro p q
+          exact hf p q
       · simp[hχ]
   | succ n hn ih => sorry
 
 
 --R (F2, k) = k+1
-theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (Wedge 2) k (k + 1) := by
+theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (Wedge 2) k k := by
   induction k, hk using Nat.le_induction with
   | base =>
     · use fun _ => 0
       rintro ⟨c, iso, inducedCopy, contra⟩
-      have hn' : n ≤ 1 := by
-        exact Nat.le_of_lt_succ hn
-
-      have hinj : Function.Injective iso := by
-        intro a b hab
-        apply le_antisymm
-        · exact (inducedCopy a b).2 hab.le
-        · exact (inducedCopy b a).2 hab.ge
-
+      rcases inducedCopy with ⟨hinj, hx⟩
       have hcard := Fintype.card_le_of_injective iso hinj
       rw [WedgeCard, BooleanLatticeCard] at hcard
-      have hInequal : 2^n ≤ 2 := by
-        calc 2 ^ n ≤ 2 ^ 1 := Nat.pow_le_pow_right (by linarith) hn'
-          _ = 2 := by rfl
-      omega
+      norm_num at hcard
   | succ n hn ih => sorry
 
 /-
@@ -183,7 +162,11 @@ lemma MainTheoremLower : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyLowerBound
 R(Q_2; k) ≤ 2k.
 -/
 lemma MainTheoremUpper : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyUpperBound (Diamond 2) k (2 * k) := by
-  sorry
+  intro k hk
+  have h := MainLemma k 0 (Or.inl hk)
+  have hN : MixedRamseyNumber k 0 = 2 * k := rfl
+  rw[hN] at h
+  exact ObviousLemma.mp h
 
 /-
 Our main result: R(Q_2; k) = 2k.
