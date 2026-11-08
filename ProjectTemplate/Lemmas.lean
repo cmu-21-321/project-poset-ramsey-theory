@@ -133,9 +133,30 @@ theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (W
 The mixed Ramsey upper bound for P and Q with zero colors for Q is equivalent to
 the single-poset Ramsey upper bound for P.
 -/
-lemma ObviousLemma {P Q : Type} [PartialOrder P] [PartialOrder Q] {a N : ℕ}:
+lemma ObviousLemma {P Q : Type} [PartialOrder P] [PartialOrder Q] {a N : ℕ} :
     IsMixedRamseyUpperBound P Q a 0 N ↔ IsMulticolorRamseyUpperBound P a N := by
-  sorry
+  constructor
+  · intro hMixed χ
+    rcases hMixed χ with hasP | hasQ
+    · rcases hasP with ⟨c, _, _⟩
+      use c
+    · rcases hasQ with ⟨c, hc, h⟩
+      exfalso
+      rcases Finset.mem_filter.mp hc with ⟨_, hca⟩
+      apply lt_iff_not_ge.mp c.isLt
+      exact ge_iff_le.mp hca
+  · intro hRamsey χ
+    left
+    unfold HasSpecifiedMonochromeSubposet
+    unfold IsMulticolorRamseyUpperBound at hRamsey
+    specialize hRamsey χ
+    unfold HasMonochromeSubposet at hRamsey
+    rcases hRamsey with ⟨c, hc⟩
+    use c
+    constructor
+    · apply Finset.mem_filter.mpr
+      exact ⟨Fintype.complete c, c.isLt⟩
+    · exact hc
 
 /-
 The mixed Ramsey number used in our main upper bound lemma.
@@ -152,10 +173,37 @@ lemma MainLemma : ∀ (a b : ℕ), (a ≥ 1 ∨ b ≥ 1) →
     IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) a b (MixedRamseyNumber a b) := by
   sorry
 
+-- Nat.le_iff_lt_add_one.mp (Finset.card_le_univ x)
+
+/-
+Defines the coloring of Q_(2k-1) where each color gets two layers, which is used in the lower bound
+proof.
+This is ugly, will need to clean up
+-/
+def LayerColoring (k : ℕ) (hk : k ≥ 1) : Coloring k (BooleanLattice (2 * k - 1)) :=
+  fun x ↦ ⟨x.card / 2, by
+      have h := Finset.card_le_univ x
+      apply Nat.le_iff_lt_add_one.mp at h
+      simp at h
+      have h1 : 1 ≤ 2 * k := by exact Nat.one_le_of_lt (Nat.le_mul_of_pos_right 2 hk)
+      rw [Nat.sub_add_cancel h1] at h
+      have h2 : 2 ∣ (2 * k) := Nat.dvd_mul_right 2 k
+      have h3 := Nat.div_lt_div_of_lt_of_dvd h2 h
+      have h4 : 0 < 2 := by exact Nat.zero_lt_two
+      have h5 : 2 * k / 2 = k := by exact Nat.mul_div_cancel_left k h4
+      rw [h5] at h3
+      exact h3
+      ⟩
+
 /-
 R(Q_2; k) ≥ 2k.
 -/
 lemma MainTheoremLower : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyLowerBound (Diamond 2) k (2*k-1) := by
+  intro k hk
+  use LayerColoring k hk
+  unfold HasMonochromeSubposet
+  push Not
+  intro c f hf
   sorry
 
 /-

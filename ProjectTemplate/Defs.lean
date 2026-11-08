@@ -165,7 +165,7 @@ that there is some monochromatic copy of P in Q of some color in cs.
 -/
 def HasSpecifiedMonochromeSubposet (P Q : Type) [PartialOrder P] [PartialOrder Q] (k : ℕ)
     (χ : Coloring k Q) (cs : Finset (Fin k)) : Prop :=
-  ∃ (c : cs), ∃ (f : P → Q), IsInducedCopy f ∧ ∀ (x : P), χ (f x) = c
+  ∃ (c : Fin k), c ∈ cs ∧ ∃ (f : P → Q), IsInducedCopy f ∧ ∀ (x : P), χ (f x) = c
 
 /-
 Defines {0, 1, ..., a-1} (the first a elements) as a subset of {0, 1, ..., k-1}.
@@ -183,7 +183,7 @@ Equivalent to the statement that R(P^a, Q^b) ≤ N.
 def IsMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
     (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∀ (χ : Coloring (a + b) (BooleanLattice N)),
   HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
-  HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
+  HasSpecifiedMonochromeSubposet Q (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
 -- The following two definitions are not used in our proof, but are included for completeness.
 
@@ -192,8 +192,8 @@ Equivalent to the statement that R(P^a, Q^b) ≥ N.
 -/
 def IsMixedRamseyLowerBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
     (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∃ (χ : Coloring (a + b) (BooleanLattice N)),
-  ¬HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
-  ¬HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
+  ¬HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∧
+  ¬HasSpecifiedMonochromeSubposet Q (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
 /-
 Equivalent to the statement that R(P^a, Q^b) = N.
