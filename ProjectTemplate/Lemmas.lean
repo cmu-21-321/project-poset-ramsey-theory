@@ -8,8 +8,6 @@ import Mathlib.Tactic.IntervalCases
 import Mathlib.Tactic.Linter.Header
 set_option linter.flexible false
 
-
-
 theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
     ∃! (N : ℕ), IsMulticolorRamseyNumber P k N := by
   sorry
@@ -116,18 +114,79 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
       · simp[hχ]
   | succ n hn ih => sorry
 
+#check congrArg
 
 --R (F2, k) = k+1
 theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (Wedge 2) k k := by
-  induction k, hk using Nat.le_induction with
-  | base =>
-    · use fun _ => 0
-      rintro ⟨c, iso, inducedCopy, contra⟩
-      rcases inducedCopy with ⟨hinj, hx⟩
-      have hcard := Fintype.card_le_of_injective iso hinj
-      rw [WedgeCard, BooleanLatticeCard] at hcard
-      norm_num at hcard
-  | succ n hn ih => sorry
+  let χ : BooleanLattice k → (Fin k) :=
+    fun set ↦ ⟨Finset.card set - 1, by
+    have hle : set.card ≤ k := by
+      calc
+      set.card ≤ Finset.univ.card := Finset.card_le_card (Finset.subset_univ set)
+      _ = k := by simp
+    omega⟩
+  use χ
+  intro h
+  rcases h with ⟨c, f, hf, hmono⟩
+  rcases hf with ⟨hfi, horder⟩
+  let x₀ : Wedge 2 := ⟨0, by norm_num⟩
+  let x₁ : Wedge 2 := ⟨1, by norm_num⟩
+  let x₂ : Wedge 2 := ⟨2, by norm_num⟩
+  let A := f x₀
+  let B := f x₁
+  let C := f x₂ --the top of the wedge
+  have hAnC : A ≠ C := by
+    intro h
+    have : (⟨0, by norm_num⟩ : Wedge 2) =
+         ⟨2, by norm_num⟩ := hfi h
+    norm_num at this
+  have hBnC : B ≠ C := by
+    intro h
+    have : (⟨1, by norm_num⟩ : Wedge 2) =
+         ⟨2, by norm_num⟩ := hfi h
+    norm_num at this
+
+  have hA : A ≤ C := by
+    apply (horder x₀ x₂).mp
+    change x₂.val = 2 ∨ x₀.val = x₂.val
+    left
+    rfl
+  have hB : B ≤ C := by
+    apply (horder x₁ x₂).mp
+    change x₂.val = 2 ∨ x₁.val = x₂.val
+    left
+    rfl
+
+  have hAC : A.card - 1 = C.card - 1 := congrArg Fin.val
+      ((hmono x₀).trans (hmono x₂).symm)
+  by_cases hC : C.card ≤ 1
+  · have hAc : A.card ≤ 1 := by
+      exact le_trans (Finset.card_le_card hA) hC
+    have hBc : B.card ≤ 1 := by
+      exact le_trans (Finset.card_le_card hB) hC
+
+    by_cases hC0 : C.card = 0
+    · by_cases hA0 : A.card = 0
+      · have hAeC : A = C := (Finset.card_eq_zero.mp hA0).trans (Finset.card_eq_zero.mp hC0).symm
+        exact hAnC hAeC
+      · have hA0 : Finset.card A = 1 := by omega
+        sorry --only need this case (|A| = 1, |C| = 0. Plan to contradict via A ≤ C)
+    · have hC1 : C.card = 1 := by omega
+      by_cases hA0 : A.card = 0
+      · by_cases hB0 : B.card = 0
+        · have hAB : A = B := (Finset.card_eq_zero.mp hA0).trans (Finset.card_eq_zero.mp hB0).symm
+          have contra : x₀ = x₁ := hfi hAB
+          dsimp[x₀, x₁] at contra --bro imma crash out i literally got 0=1 here
+          sorry
+
+        · have hB0 : B.card = 1 := by omega
+          have hBC : B.card = C.card := by omega
+          exact hBnC ((Finset.subset_iff_eq_of_card_le (ge_of_eq hBC)).mp hB)
+      · have hAC : A.card = C.card := by omega
+        exact hAnC ((Finset.subset_iff_eq_of_card_le (ge_of_eq hAC)).mp hA)
+  · have hC : Finset.card C ≥ 2 := by omega
+    have hAC : A.card = C.card := by omega
+    exact hAnC ((Finset.subset_iff_eq_of_card_le (ge_of_eq hAC)).mp hA)
 
 /-
 The mixed Ramsey upper bound for P and Q with zero colors for Q is equivalent to
