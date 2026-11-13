@@ -93,6 +93,73 @@ lemma EnoughToProveLowerAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
   · intro hRamsey
     exact hRamsey N (Nat.le_refl N)
 
+/-
+Defines a map from a color set Fin (k + 1) to Fin k by removing a color and shifting things down.
+-/
+def RemoveColor {k : ℕ} (c : Fin (k + 1)) (d : Fin (k + 1)) (hx : d ≠ c) : Fin k :=
+  if hc : c = Fin.last k then d.castPred (ne_of_ne_of_eq hx hc)
+  else Fin.predAbove (c.castPred hc) d
+
+/-
+Defines the inverse of the above map.
+-/
+def InvertRemoveColor {k : ℕ} (c : Fin (k + 1)) (d : Fin k) : Fin (k + 1) :=
+  c.succAbove d
+
+/-
+Proves that it is indeed the inverse.
+-/
+lemma RemovingIsInvertible {k : ℕ} (c : Fin (k + 1)) (d : Fin (k + 1)) (hx : d ≠ c) :
+    InvertRemoveColor c (RemoveColor c d hx) = d := by
+  unfold RemoveColor
+  unfold InvertRemoveColor
+  by_cases hc : c = Fin.last k
+  · simp [hc]
+  · simp [hc]
+    have h := Fin.castSucc_castPred c hc
+    nth_rw 1 [←h]
+    rw [←h] at hx
+    exact Fin.succAbove_predAbove hx
+
+/-
+Given that some color never appears in a (k+1)-coloring of P, constructs a k-coloring of P with the
+other colors.
+-/
+def ShrinkColoring {P : Type} {k : ℕ} (χ : Coloring (k + 1) P) (c : Fin (k + 1))
+    (hMiss : ∀ (x : P), χ x ≠ c) : Coloring k P :=
+  fun x ↦ RemoveColor c (χ x) (hMiss x)
+
+/-
+A monochrome copy of P exists in a k+1-coloring of Q where some color c is unused iff it also exists
+when we shrink it into a k-coloring.
+-/
+lemma ShrinkPreserve {P Q : Type} [PartialOrder P] [Nonempty P] [PartialOrder Q] {k : ℕ}
+    (χ : Coloring (k + 1) Q) (c : Fin (k + 1)) (hMiss : ∀ (x : Q), χ x ≠ c) :
+    HasMonochromeSubposet P Q (k + 1) χ ↔ HasMonochromeSubposet P Q k (ShrinkColoring χ c hMiss)
+    := by
+  unfold HasMonochromeSubposet
+  constructor
+  · rintro ⟨d, f, hInduced, hColor⟩
+    obtain ⟨x⟩ := ‹Nonempty P›
+    use RemoveColor c d (ne_of_eq_of_ne (hColor x).symm (hMiss (f x))), f
+    constructor
+    · assumption
+    · intro y
+      specialize hColor y
+      subst hColor
+      rfl
+  · rintro ⟨d, f, hInduced, hColor⟩
+    use InvertRemoveColor c d, f
+    constructor
+    · assumption
+    · intro x
+      unfold ShrinkColoring at hColor
+      specialize hColor x
+      calc
+        χ (f x) = InvertRemoveColor c (RemoveColor c (χ (f x)) (hMiss (f x))) :=
+          (RemovingIsInvertible c (χ (f x)) (hMiss (f x))).symm
+        _ = InvertRemoveColor c d := by rw [hColor]
+
 theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (Wedge 2) k (k + 1) := by
   induction k, hk using Nat.le_induction with
   | base =>
