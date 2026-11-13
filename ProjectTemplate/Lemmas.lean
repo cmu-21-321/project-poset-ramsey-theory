@@ -13,52 +13,63 @@ theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
   sorry
 
 /-
+The identity function, mapping elements from a smaller boolean cube Q_n to themselves in a
+larger Q_m.
+-/
+def ProjectUp {n m : ℕ} (h : n ≤ m) : BooleanLattice n → BooleanLattice m :=
+  Finset.map ⟨Fin.castLE h, Fin.castLE_injective h⟩
+
+lemma ProjectUpInj {n m : ℕ} (h : n ≤ m) : Function.Injective (ProjectUp h) := by
+  exact Finset.map_injective ⟨Fin.castLE h, Fin.castLE_injective h⟩
+
+lemma ProjectUpInduced {n m : ℕ} (h : n ≤ m) : ∀ (s t : BooleanLattice n),
+    s ≤ t ↔ ProjectUp h s ≤ ProjectUp h t := by
+  intro s t
+  constructor
+  · intro hst x hxs
+    rcases Finset.mem_map.mp hxs with ⟨y, hy, hyx⟩
+    apply Finset.mem_map.mpr
+    use y
+    constructor
+    · exact hst hy
+    · exact hyx
+  · intro hSubset
+    unfold ProjectUp at hSubset
+    intro x hxs
+    have h2 : Fin.castLE h x ∈ (ProjectUp h) s :=
+      Finset.mem_map.mpr ⟨x, hxs, rfl⟩
+    have h3 : Fin.castLE h x ∈ (ProjectUp h) t :=
+      Set.mem_of_subset_of_mem hSubset h2
+    rcases Finset.mem_map.mp h3 with ⟨a, haft, hax⟩
+    apply Fin.castLE_injective at hax
+    rw [←hax]
+    exact haft
+
+/-
 Given a k-coloring on a boolean cube Q_m, this defines a k-coloring on a smaller cube Q_n by simply
 restricting the domain and copying over the same colors.
 -/
-def restrict (k m n : ℕ) (h : m ≥ n) : Coloring k (BooleanLattice m) →
+def RestrictColoring (k m n : ℕ) (h : m ≥ n) : Coloring k (BooleanLattice m) →
     Coloring k (BooleanLattice n) :=
-  fun χ x ↦ χ (x.map ⟨Fin.castLE h, Fin.castLE_injective h⟩)
+  fun χ x ↦ χ (ProjectUp h x)
 
 /-
 States that proving R(P; k) ≤ N is equivalent to proving that the monochromatic posets are forced
 for Q_N specifically.
 -/
-theorem EnoughToProveUpperAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
+lemma EnoughToProveUpperAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
     IsMulticolorRamseyUpperBound P k N ↔ ∀ n ≥ N, IsMulticolorRamseyUpperBound P k n := by
   unfold IsMulticolorRamseyUpperBound
   constructor
   · intro hRamsey n hn χ
-    specialize hRamsey (restrict k n N hn χ)
+    specialize hRamsey (RestrictColoring k n N hn χ)
     rcases hRamsey with ⟨c, f, ⟨hfInjective, hInduced⟩, hMonochrome⟩
-    use c, Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩ ∘ f
+    use c, (ProjectUp hn) ∘ f
     constructor
     · constructor
-      · have hInjective : Function.Injective
-            (Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩) :=
-          Finset.map_injective ⟨Fin.castLE hn, Fin.castLE_injective hn⟩
-        exact (Function.Injective.of_comp_iff hInjective f).mpr hfInjective
-      · intro s t
-        constructor
-        · intro hst x hxs
-          rcases Finset.mem_map.mp hxs with ⟨y, hy, hyx⟩
-          apply Finset.mem_map.mpr
-          use y
-          constructor
-          · exact Set.mem_of_subset_of_mem ((hInduced s t).mp hst) hy
-          · exact hyx
-        · intro hSubset
-          apply (hInduced s t).mpr
-          intro x hxs
-          have h : Fin.castLE hn x ∈ (Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩ ∘ f) s :=
-            Finset.mem_map.mpr ⟨x, hxs, rfl⟩
-          have h2 : Fin.castLE hn x ∈ (Finset.map ⟨Fin.castLE hn, Fin.castLE_injective hn⟩ ∘ f) t :=
-            Set.mem_of_subset_of_mem hSubset h
-          apply Finset.mem_map.mp at h2
-          rcases h2 with ⟨a, haft, hax⟩
-          apply Fin.castLE_injective at hax
-          rw [←hax]
-          exact haft
+      · exact (Function.Injective.of_comp_iff (ProjectUpInj hn) f).mpr hfInjective
+      · intro a b
+        exact (hInduced a b).trans (ProjectUpInduced hn (f a) (f b))
     · intro x
       exact hMonochrome x
   · intro hRamsey
@@ -68,7 +79,7 @@ theorem EnoughToProveUpperAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
 States that to prove R(P; k) ≥ N, it's enough to prove that the monochromatic posets can be avoided
 for Q_N specifically.
 -/
-theorem EnoughToProveLowerAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
+lemma EnoughToProveLowerAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
     IsMulticolorRamseyLowerBound P k N ↔ ∀ n ≤ N, IsMulticolorRamseyLowerBound P k n := by
   constructor
   · intro hRamsey n hn
@@ -112,7 +123,12 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
         · intro p q
           exact hf p q
       · simp[hχ]
-  | succ n hn ih => sorry
+  | succ k hk ih =>
+      intro χ
+      by_cases h : ∃ (i : Fin (k + 2)), ∀ (s : BooleanLattice (k + 2)), s ≠ ∅ → χ s = χ ⊤ → i ∈ s
+      · sorry
+      · sorry
+
 
 #check congrArg
 

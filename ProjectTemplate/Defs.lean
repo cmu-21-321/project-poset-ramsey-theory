@@ -8,7 +8,7 @@ This creates the n-boolean cube as a poset under subset inclusion.
 Vertices are elements of P(n).
 -/
 
-def BooleanLattice (n : ℕ) : Type := Finset (Fin n)
+abbrev BooleanLattice (n : ℕ) : Type := Finset (Fin n)
 instance (n : ℕ) : PartialOrder (BooleanLattice n) :=
   inferInstanceAs (PartialOrder (Finset (Fin n)))
 instance (n : ℕ) : Fintype (BooleanLattice n) :=
