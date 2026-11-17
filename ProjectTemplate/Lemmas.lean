@@ -228,7 +228,6 @@ theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (W
     have : (⟨1, by norm_num⟩ : Wedge 2) =
          ⟨2, by norm_num⟩ := hfi h
     norm_num at this
-
   have hA : A ≤ C := by
     apply (horder x₀ x₂).mp
     change x₂.val = 2 ∨ x₀.val = x₂.val
@@ -239,7 +238,6 @@ theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (W
     change x₂.val = 2 ∨ x₁.val = x₂.val
     left
     rfl
-
   have hAC : A.card - 1 = C.card - 1 := congrArg Fin.val
       ((hmono x₀).trans (hmono x₂).symm)
   by_cases hC : C.card ≤ 1
@@ -247,21 +245,22 @@ theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (W
       exact le_trans (Finset.card_le_card hA) hC
     have hBc : B.card ≤ 1 := by
       exact le_trans (Finset.card_le_card hB) hC
-
     by_cases hC0 : C.card = 0
     · by_cases hA0 : A.card = 0
       · have hAeC : A = C := (Finset.card_eq_zero.mp hA0).trans (Finset.card_eq_zero.mp hC0).symm
         exact hAnC hAeC
       · have hA0 : Finset.card A = 1 := by omega
-        sorry --only need this case (|A| = 1, |C| = 0. Plan to contradict via A ≤ C)
+        have contra : Finset.card A ≤ Finset.card C := Finset.card_le_card hA
+        linarith
     · have hC1 : C.card = 1 := by omega
       by_cases hA0 : A.card = 0
       · by_cases hB0 : B.card = 0
         · have hAB : A = B := (Finset.card_eq_zero.mp hA0).trans (Finset.card_eq_zero.mp hB0).symm
           have contra : x₀ = x₁ := hfi hAB
-          dsimp[x₀, x₁] at contra --bro imma crash out i literally got 0=1 here
-          sorry
-
+          have realcontra : x₀ ≠ x₁ := by
+            have h := congr_arg Fin.val contra
+            simp at h
+          exact realcontra contra
         · have hB0 : B.card = 1 := by omega
           have hBC : B.card = C.card := by omega
           exact hBnC ((Finset.subset_iff_eq_of_card_le (ge_of_eq hBC)).mp hB)
@@ -311,8 +310,9 @@ def MixedRamseyNumber (a b : ℕ) : ℕ :=
 /-
 Our main upper bound lemma: R(Q_2^a, D_2^b) ≤ the number specified above.
 -/
-lemma MainLemma : ∀ (a b : ℕ), (a ≥ 1 ∨ b ≥ 1) →
+lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 →
     IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) a b (MixedRamseyNumber a b) := by
+  intro a b ha
   sorry
 
 -- Nat.le_iff_lt_add_one.mp (Finset.card_le_univ x)
@@ -353,7 +353,7 @@ R(Q_2; k) ≤ 2k.
 -/
 lemma MainTheoremUpper : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyUpperBound (Diamond 2) k (2 * k) := by
   intro k hk
-  have h := MainLemma k 0 (Or.inl hk)
+  have h := MainLemma k 0 (hk)
   have hN : MixedRamseyNumber k 0 = 2 * k := rfl
   rw[hN] at h
   exact ObviousLemma.mp h
