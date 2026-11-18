@@ -13,45 +13,106 @@ theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
   sorry
 
 /-
-The identity function, mapping elements from a smaller boolean cube Q_n to themselves in a
-larger Q_m.
+Defines a structure containing an injective map from Fin n to Fin m.
 -/
-def ProjectUp {n m : ℕ} (h : n ≤ m) : BooleanLattice n → BooleanLattice m :=
-  Finset.map ⟨Fin.castLE h, Fin.castLE_injective h⟩
-
-lemma ProjectUpInj {n m : ℕ} (h : n ≤ m) : Function.Injective (ProjectUp h) := by
-  exact Finset.map_injective ⟨Fin.castLE h, Fin.castLE_injective h⟩
-
-lemma ProjectUpInduced {n m : ℕ} (h : n ≤ m) : ∀ (s t : BooleanLattice n),
-    s ≤ t ↔ ProjectUp h s ≤ ProjectUp h t := by
-  intro s t
-  constructor
-  · intro hst x hxs
-    rcases Finset.mem_map.mp hxs with ⟨y, hy, hyx⟩
-    apply Finset.mem_map.mpr
-    use y
-    constructor
-    · exact hst hy
-    · exact hyx
-  · intro hSubset
-    unfold ProjectUp at hSubset
-    intro x hxs
-    have h2 : Fin.castLE h x ∈ (ProjectUp h) s :=
-      Finset.mem_map.mpr ⟨x, hxs, rfl⟩
-    have h3 : Fin.castLE h x ∈ (ProjectUp h) t :=
-      Set.mem_of_subset_of_mem hSubset h2
-    rcases Finset.mem_map.mp h3 with ⟨a, haft, hax⟩
-    apply Fin.castLE_injective at hax
-    rw [←hax]
-    exact haft
+@[ext]
+structure FinMap where
+  n : ℕ
+  m : ℕ
+  f : Fin n → Fin m
+  injective : Function.Injective f
 
 /-
-Given a k-coloring on a boolean cube Q_m, this defines a k-coloring on a smaller cube Q_n by simply
-restricting the domain and copying over the same colors.
+Defines a structure containing an injective, order-preserving map from Q_n to Q_m.
 -/
-def RestrictColoring (k m n : ℕ) (h : m ≥ n) : Coloring k (BooleanLattice m) →
-    Coloring k (BooleanLattice n) :=
-  fun χ x ↦ χ (ProjectUp h x)
+@[ext]
+structure BooleanLatticeMap where
+  n : ℕ
+  m : ℕ
+  φ : BooleanLattice n → BooleanLattice m
+  injective : Function.Injective φ
+  induced : ∀ (s t : BooleanLattice n), s ≤ t ↔ φ s ≤ φ t
+
+/-
+Any FinMap can be extended to a BooleanLatticeMap, where the FinMap is simply applied to all
+elements.
+-/
+def Extend (map : FinMap) : BooleanLatticeMap where
+  n := map.n
+  m := map.m
+  φ := Finset.map ⟨map.f, map.injective⟩
+  injective := by apply Finset.map_injective
+  induced := by
+    intro s t
+    constructor
+    · intro hst x hxs
+      rcases Finset.mem_map.mp hxs with ⟨y, hy, hyx⟩
+      apply Finset.mem_map.mpr
+      use y
+      constructor
+      · exact hst hy
+      · exact hyx
+    · intro hSubset x hxs
+      have h2 : map.f x ∈ Finset.map ⟨map.f, map.injective⟩ s := Finset.mem_map.mpr ⟨x, hxs, rfl⟩
+      have h3 : map.f x ∈ Finset.map ⟨map.f, map.injective⟩ t := Set.mem_of_subset_of_mem hSubset h2
+      rcases Finset.mem_map.mp h3 with ⟨a, haft, hax⟩
+      apply map.injective at hax
+      rw [←hax]
+      exact haft
+
+/-
+A permutation is one such injective map.
+-/
+def Permute {n : ℕ} (σ : Equiv.Perm (Fin n)) : FinMap where
+  n := n
+  m := n
+  f := σ
+  injective := Equiv.injective σ
+
+/-
+The identity function from Fin n to Fin m, where n ≤ m, is one such injective map.
+-/
+def ProjectUp {n m : ℕ} (h : n ≤ m) : FinMap where
+  n := n
+  m := m
+  f := Fin.castLE h
+  injective := Fin.castLE_injective h
+
+/-
+The corresponding embedding.
+-/
+abbrev EmbedUp {n m : ℕ} (h : n ≤ m) : BooleanLatticeMap := Extend (ProjectUp h)
+
+/-
+The function from Fin n to Fin (n+1) that skips some element of Fin (n+1) is one such injective map.
+-/
+def AddOne {n : ℕ} (i : Fin (n + 1)) : FinMap where
+  n := n
+  m := n + 1
+  f := i.succAbove
+  injective := Fin.succAbove_right_injective
+
+/-
+The corresponding embedding.
+-/
+abbrev SkipElement {n : ℕ} (i : Fin (n + 1)) : BooleanLatticeMap := Extend (AddOne i)
+
+/-
+Proves that this embedding always skips the element i.
+-/
+lemma ItActuallySkips {n : ℕ} (i : Fin (n + 1)) : ∀ (x : BooleanLattice (SkipElement i).n),
+    i ∉ (SkipElement i).φ x := by
+  intro x hi
+  rcases Finset.mem_map.mp hi with ⟨a, hax, hai⟩
+  exact Fin.succAbove_ne i a hai
+
+/-
+Give an k-coloring on a boolean cube Q_m and a map from Q_n to Q_m, it extends the coloring to Q_n
+by transferring it over the map.
+-/
+abbrev RestrictColoring {k : ℕ} (map : BooleanLatticeMap) (χ : Coloring k (BooleanLattice map.m)) :
+    Coloring k (BooleanLattice map.n) :=
+  fun x ↦ χ (map.φ x)
 
 /-
 States that proving R(P; k) ≤ N is equivalent to proving that the monochromatic posets are forced
@@ -62,14 +123,14 @@ lemma EnoughToProveUpperAtN (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
   unfold IsMulticolorRamseyUpperBound
   constructor
   · intro hRamsey n hn χ
-    specialize hRamsey (RestrictColoring k n N hn χ)
+    specialize hRamsey (RestrictColoring (EmbedUp hn) χ)
     rcases hRamsey with ⟨c, f, ⟨hfInjective, hInduced⟩, hMonochrome⟩
-    use c, (ProjectUp hn) ∘ f
+    use c, (EmbedUp hn).φ ∘ f
     constructor
     · constructor
-      · exact (Function.Injective.of_comp_iff (ProjectUpInj hn) f).mpr hfInjective
+      · exact (Function.Injective.of_comp_iff (EmbedUp hn).injective f).mpr hfInjective
       · intro a b
-        exact (hInduced a b).trans (ProjectUpInduced hn (f a) (f b))
+        exact (hInduced a b).trans ((EmbedUp hn).induced (f a) (f b))
     · intro x
       exact hMonochrome x
   · intro hRamsey
@@ -103,7 +164,7 @@ def RemoveColor {k : ℕ} (c : Fin (k + 1)) (d : Fin (k + 1)) (hx : d ≠ c) : F
 /-
 Defines the inverse of the above map.
 -/
-def InvertRemoveColor {k : ℕ} (c : Fin (k + 1)) (d : Fin k) : Fin (k + 1) :=
+abbrev InvertRemoveColor {k : ℕ} (c : Fin (k + 1)) (d : Fin k) : Fin (k + 1) :=
   c.succAbove d
 
 /-
@@ -193,7 +254,20 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
   | succ k hk ih =>
       intro χ
       by_cases h : ∃ (i : Fin (k + 2)), ∀ (s : BooleanLattice (k + 2)), s ≠ ∅ → χ s = χ ⊤ → i ∈ s
-      · sorry
+      · unfold HasMonochromeSubposet
+        rcases h with ⟨i, hi⟩
+        have hMiss : ∀ (x : BooleanLattice (k + 1)),
+            x ≠ ∅ → RestrictColoring (SkipElement i) χ x ≠ χ ⊤ := by
+          intro x hNonempty hEq
+          unfold RestrictColoring at hEq
+          have hnonempty : (SkipElement i).φ x ≠ ∅ :=
+            Function.Injective.ne (SkipElement i).injective hNonempty
+          specialize hi ((SkipElement i).φ x) hnonempty hEq
+          exact ItActuallySkips i x hi
+        sorry
+        -- specialize ih (ShrinkColoring (RestrictColoring (SkipElement i) χ) (χ ⊤) hMiss)
+        -- rcases ih with ⟨c, f, hInduced, hColor⟩
+        -- use InvertRemoveColor (χ ⊤) c
       · sorry
 
 
