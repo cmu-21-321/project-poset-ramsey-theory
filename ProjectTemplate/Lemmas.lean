@@ -15,7 +15,6 @@ theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
 /-
 Defines a structure containing an injective map from Fin n to Fin m.
 -/
-@[ext]
 structure FinMap where
   n : ℕ
   m : ℕ
@@ -25,7 +24,6 @@ structure FinMap where
 /-
 Defines a structure containing an injective, order-preserving map from Q_n to Q_m.
 -/
-@[ext]
 structure BooleanLatticeMap where
   n : ℕ
   m : ℕ
@@ -221,6 +219,26 @@ lemma ShrinkPreserve {P Q : Type} [PartialOrder P] [Nonempty P] [PartialOrder Q]
           (RemovingIsInvertible c (χ (f x)) (hMiss (f x))).symm
         _ = InvertRemoveColor c d := by rw [hColor]
 
+lemma WedgeNotMapToEmpty {N : ℕ} {f : Wedge 2 → BooleanLattice N} (hInduced : IsInducedCopy f) :
+    ∀ (x : Wedge 2), f x ≠ ∅ := by
+  intro x hfx
+  rcases hInduced with ⟨hInjective, hInduced⟩
+  match v : x.val with
+  | 0 => sorry
+  | 1 => sorry
+  | 2 => sorry
+  | Nat.succ (Nat.succ (Nat.succ n)) => sorry
+
+lemma WedgeIgnoreEmptySet {k N : ℕ} (hk : k ≥ 1) :
+    IsMulticolorRamseyUpperBound (Wedge 2) k N ↔ IsModifiedRamseyUpperBound (Wedge 2) k N := by
+  constructor
+  · intro hRamsey χ
+    let χ' : Coloring k (BooleanLattice N) := fun s ↦ if h : s = ∅ then Fin.mk 0 hk else χ ⟨s, h⟩
+    rcases hRamsey χ' with ⟨c, f, hf⟩
+    use c
+    sorry
+  · sorry
+
 theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (Wedge 2) k (k + 1) := by
   induction k, hk using Nat.le_induction with
   | base =>
@@ -256,10 +274,10 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
       by_cases h : ∃ (i : Fin (k + 2)), ∀ (s : BooleanLattice (k + 2)), s ≠ ∅ → χ s = χ ⊤ → i ∈ s
       · unfold HasMonochromeSubposet
         rcases h with ⟨i, hi⟩
+        let χ' := RestrictColoring (SkipElement i) χ
         have hMiss : ∀ (x : BooleanLattice (k + 1)),
-            x ≠ ∅ → RestrictColoring (SkipElement i) χ x ≠ χ ⊤ := by
+            x ≠ ∅ → χ' x ≠ χ ⊤ := by
           intro x hNonempty hEq
-          unfold RestrictColoring at hEq
           have hnonempty : (SkipElement i).φ x ≠ ∅ :=
             Function.Injective.ne (SkipElement i).injective hNonempty
           specialize hi ((SkipElement i).φ x) hnonempty hEq
@@ -269,9 +287,6 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
         -- rcases ih with ⟨c, f, hInduced, hColor⟩
         -- use InvertRemoveColor (χ ⊤) c
       · sorry
-
-
-#check congrArg
 
 --R (F2, k) = k+1
 theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (Wedge 2) k k := by

@@ -28,12 +28,23 @@ theorem BooleanLatticeIncomparable {n : ℕ} (A B : Finset (Fin n))
     exact hne (Finset.eq_of_subset_of_card_le h hcard.le).symm
 
 /-
+Defines Q_n \ ∅ as a subtype of Q_n.
+-/
+def NonemptyBooleanLattice (n : ℕ) : Type := {s : BooleanLattice n // s ≠ ∅}
+instance (n : ℕ) : PartialOrder (NonemptyBooleanLattice n) where
+  le := fun x y ↦ x.val ≤ y.val
+  le_refl := fun a ↦ Finset.Subset.refl a.val
+  le_trans := fun a b c ↦ Finset.Subset.trans
+  le_antisymm := fun a b hab hba ↦ Subtype.ext (Finset.Subset.antisymm hab hba)
+
+/-
 This sets up the n-diamond as a poset and proves that the relation satsifies the poset axioms.
 Underlyingly, we are representing it as a set of n+2 elements, with 0 being the bottom
 and n+1 being the top.
 -/
 
 def Diamond (n : ℕ) : Type := Fin (n + 2)
+instance (n : ℕ) : Fintype (Diamond n) := inferInstanceAs (Fintype (Fin (n + 2)))
 
 def DiamondOrder {n : ℕ} : Diamond n → Diamond n → Prop :=
   fun x y ↦ x.val = 0 ∨ y.val = n + 1 ∨ x.val = y.val
@@ -80,9 +91,16 @@ instance (n : ℕ) : PartialOrder (Diamond n) where
   le_trans := DiamondTrans
   le_antisymm := DiamondAntisymm
 
-
-
 --Wedges/Fans. Theorem about fan cardinality is included to make math easier.
+
+def SubWedge (n : ℕ) : Type := {x : Diamond n // x.val ≠ 0}
+
+instance (n : ℕ) : PartialOrder (SubWedge n) where
+  le := fun x y ↦ x.val ≤ y.val
+  le_refl := fun a ↦ DiamondRefl a.val
+  le_trans := fun a b c ↦ DiamondTrans a.val b.val c.val
+  le_antisymm := fun a b hab hba ↦ Subtype.ext (DiamondAntisymm a.val b.val hab hba)
+
 def Wedge (n : ℕ) : Type := Fin (n + 1)
 instance (n : ℕ) : Fintype (Wedge n) := inferInstanceAs (Fintype (Fin (n + 1)))
 
@@ -154,6 +172,13 @@ def IsMulticolorRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ)
   ∃ (χ : Coloring k (BooleanLattice N)), ¬HasMonochromeSubposet P (BooleanLattice N) k χ
 
 /-
+Equivalent to the statement that R*(P; k) ≤ N.
+-/
+def IsModifiedRamseyUpperBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+  ∀ (χ : Coloring k (NonemptyBooleanLattice N)),
+  HasMonochromeSubposet P (NonemptyBooleanLattice N) k χ
+
+/-
 Equivalent to the statement that R(P; k) = N.
 -/
 def IsMulticolorRamseyNumber (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
@@ -185,7 +210,23 @@ def IsMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
   HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
   HasSpecifiedMonochromeSubposet Q (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
--- The following two definitions are not used in our proof, but are included for completeness.
+/-
+Equivalent to the statement that R*(P^a, Q^b) ≤ N.
+-/
+def IsModifiedMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
+    (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∀ (χ : Coloring (a + b) (NonemptyBooleanLattice N)),
+  HasSpecifiedMonochromeSubposet P (NonemptyBooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
+  HasSpecifiedMonochromeSubposet Q (NonemptyBooleanLattice N) (a + b) χ (LastBofK b (a + b))
+
+
+-- The following definitions are not used in our proof, but are included for completeness.
+
+/-
+Equivalent to the statement that R*(P; k) ≥ N.
+-/
+def IsModifiedRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+  ∃ (χ : Coloring k (NonemptyBooleanLattice N)),
+  ¬HasMonochromeSubposet P (NonemptyBooleanLattice N) k χ
 
 /-
 Equivalent to the statement that R(P^a, Q^b) ≥ N.
@@ -194,6 +235,14 @@ def IsMixedRamseyLowerBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
     (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∃ (χ : Coloring (a + b) (BooleanLattice N)),
   ¬HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∧
   ¬HasSpecifiedMonochromeSubposet Q (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
+
+/-
+Equivalent to the statement that R*(P^a, Q^b) ≥ N.
+-/
+def IsModifiedMixedRamseyLowerBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
+    (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∃ (χ : Coloring (a + b) (NonemptyBooleanLattice N)),
+  ¬HasSpecifiedMonochromeSubposet P (NonemptyBooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∧
+  ¬HasSpecifiedMonochromeSubposet Q (NonemptyBooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
 /-
 Equivalent to the statement that R(P^a, Q^b) = N.
