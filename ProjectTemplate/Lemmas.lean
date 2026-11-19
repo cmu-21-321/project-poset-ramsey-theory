@@ -4,9 +4,13 @@ import Mathlib.Data.Fintype.Powerset
 import Mathlib.Data.Finset.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.IntervalCases
+import Mathlib.Data.Finset.Max
 
 import Mathlib.Tactic.Linter.Header
+
+/-! ... -/
 set_option linter.flexible false
+
 
 theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
     ∃! (N : ℕ), IsMulticolorRamseyNumber P k N := by
@@ -219,41 +223,76 @@ lemma ShrinkPreserve {P Q : Type} [PartialOrder P] [Nonempty P] [PartialOrder Q]
           (RemovingIsInvertible c (χ (f x)) (hMiss (f x))).symm
         _ = InvertRemoveColor c d := by rw [hColor]
 
-lemma WedgeNotMapToEmpty {N : ℕ} {f : Wedge 2 → BooleanLattice N} (hInduced : IsInducedCopy f) :
-    ∀ (x : Wedge 2), f x ≠ ∅ := by
-  intro x hfx
-  rcases hInduced with ⟨hInjective, hInduced⟩
-  match v : x.val with
-  | 0 => sorry
-  | 1 => sorry
-  | 2 => sorry
-  | Nat.succ (Nat.succ (Nat.succ n)) => sorry
+theorem wedge_ne_empty {m : ℕ} {f : Wedge 2 → BooleanLattice m}
+    (hf : IsInducedCopy f) (x : Wedge 2) : f x ≠ ∅ := by
+  intro hx
+  obtain ⟨a, ha⟩ := x
+  have key : ∀ y : Wedge 2, WedgeOrder ⟨a, ha⟩ y := by
+    intro y
+    exact (hf.2 _ y).2 (by rw [hx]; exact Finset.empty_subset _)
+  have h0 := key ⟨0, by decide⟩
+  have h1 := key ⟨1, by decide⟩
+  simp [WedgeOrder] at h0 h1
+  omega
 
-lemma WedgeIgnoreEmptySet {k N : ℕ} (hk : k ≥ 1) :
-    IsMulticolorRamseyUpperBound (Wedge 2) k N ↔ IsModifiedRamseyUpperBound (Wedge 2) k N := by
-  constructor
-  · intro hRamsey χ
-    let χ' : Coloring k (BooleanLattice N) := fun s ↦ if h : s = ∅ then Fin.mk 0 hk else χ ⟨s, h⟩
-    rcases hRamsey χ' with ⟨c, f, hf⟩
-    use c
-    sorry
-  · sorry
+theorem WedgeIgnoreEmptySet {m : ℕ} {f : Wedge 2 → BooleanLattice m}
+    (hf : IsInducedCopy f) (x : Wedge 2) : f x ≠ ∅ := by
+  intro hx
+  obtain ⟨a, ha⟩ := x
+  have key : ∀ y : Wedge 2, WedgeOrder ⟨a, ha⟩ y := by
+    intro y
+    exact (hf.2 _ y).2 (by rw [hx]; exact Finset.empty_subset _)
+  have h0 := key ⟨0, by decide⟩
+  have h1 := key ⟨1, by decide⟩
+  simp [WedgeOrder] at h0 h1
+  omega
 
+theorem IsInducedCopy.comp {P Q R : Type} [PartialOrder P] [PartialOrder Q] [PartialOrder R]
+    {f : P → Q} {g : Q → R} (hf : IsInducedCopy f) (hg : IsInducedCopy g) :
+    IsInducedCopy (fun x ↦ g (f x)) :=
+  ⟨hg.1.comp hf.1, fun a b ↦ (hf.2 a b).trans (hg.2 (f a) (f b))⟩
+
+theorem SkipElement_isInducedCopy {k : ℕ} (i : Fin (k + 2)) :
+    IsInducedCopy (SkipElement i).φ :=
+  ⟨(SkipElement i).injective, fun a b ↦ by
+    show a ⊆ b ↔ (SkipElement i).φ a ⊆ (SkipElement i).φ b
+    exact Finset.map_subset_map.symm⟩
+
+
+theorem RemoveColor_succAbove {k : ℕ} (c a : Fin (k + 1)) (h : a ≠ c) :
+    c.succAbove (RemoveColor c a h) = a := by
+  unfold RemoveColor
+  by_cases hc : c = Fin.last k
+  · rw [dite_eq_left hc]
+    subst hc
+    rw [Fin.succAbove_last]
+    exact Fin.castSucc_castPred _ _
+  · rw [dite_eq_right hc]
+    have hcc : (c.castPred hc).castSucc = c := Fin.castSucc_castPred c hc
+    have key := Fin.succAbove_predAbove (p := c.castPred hc) (i := a)
+      (by rw [hcc]; exact h)
+    rwa [hcc] at key
+theorem ShrinkColoring_spec {k : ℕ} {V : Type} (χ : Coloring (k + 1) V) (c : Fin (k + 1))
+    (h : ∀ x, χ x ≠ c) (x : V) (c' : Fin k)
+    (hx : ShrinkColoring χ c h x = c') :
+    χ x = InvertRemoveColor c c' := by
+  change RemoveColor c (χ x) (h x) = c' at hx
+  rw [← hx]
+  exact (RemoveColor_succAbove c (χ x) (h x)).symm
+
+set_option linter.style.haveILetI false in
 theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (Wedge 2) k (k + 1) := by
   induction k, hk using Nat.le_induction with
   | base =>
       intro χ
       use 0
-
       have hχ : χ = fun _ ↦ 0 := by
         funext this
         exact Subsingleton.elim _ _
-
       --pretty sure this explicit morphism works
       let f : (Wedge 2 → Finset (Fin 2)) := fun i ↦ if i.val = 0 then {0}
                                               else if i.val = 1 then {1}
                                               else {0,1}
-
       have hf : ∀ p q : Wedge 2, WedgeOrder p q ↔ f p ⊆ f q := by
         intro p q
         obtain ⟨i, hi⟩ := p
@@ -282,11 +321,83 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
             Function.Injective.ne (SkipElement i).injective hNonempty
           specialize hi ((SkipElement i).φ x) hnonempty hEq
           exact ItActuallySkips i x hi
-        sorry
-        -- specialize ih (ShrinkColoring (RestrictColoring (SkipElement i) χ) (χ ⊤) hMiss)
-        -- rcases ih with ⟨c, f, hInduced, hColor⟩
-        -- use InvertRemoveColor (χ ⊤) c
-      · sorry
+        haveI : Nontrivial (Fin (k + 1)) := Fin.nontrivial_iff_two_le.2 (by omega)
+        obtain ⟨d, hd⟩ : ∃ d : Fin (k + 1), d ≠ χ ⊤ := by
+          by_cases hc : (χ ⊤).val = 0
+          · refine ⟨⟨1, by omega⟩, fun h ↦ ?_⟩
+            have h' := congrArg Fin.val h
+            change 1 = (χ ⊤).val at h'
+            omega
+          · refine ⟨⟨0, by omega⟩, fun h ↦ ?_⟩
+            have h' := congrArg Fin.val h
+            change 0 = (χ ⊤).val at h'
+            omega
+        -- recolor ∅ with d, so that χ ⊤ is missed everywhere
+        let χ₁ : Coloring (k + 1) (BooleanLattice (k + 1)) :=
+          fun x ↦ if x = ∅ then d else χ' x
+        have hMiss₁ : ∀ x, χ₁ x ≠ χ ⊤ := by
+          intro x
+          by_cases hx : x = ∅
+          · change (if x = ∅ then d else χ' x) ≠ χ ⊤
+            rw [ite_eq_left hx]
+            exact hd
+          · change (if x = ∅ then d else χ' x) ≠ χ ⊤
+            rw [ite_eq_right hx]
+            exact hMiss x hx
+        -- apply the induction hypothesis to the k-coloring
+        specialize ih (ShrinkColoring χ₁ (χ ⊤) hMiss₁)
+        rcases ih with ⟨c, f, hInduced, hColor⟩
+        refine ⟨InvertRemoveColor (χ ⊤) c, fun x ↦ (SkipElement i).φ (f x), ?_, ?_⟩
+        · exact IsInducedCopy.comp hInduced (SkipElement_isInducedCopy i)
+        · intro x
+          -- the wedge avoids ∅, so the recolouring didn't affect it
+          have hne := wedge_ne_empty hInduced x
+          have h1 : χ₁ (f x) = InvertRemoveColor (χ ⊤) c :=
+            ShrinkColoring_spec χ₁ (χ ⊤) hMiss₁ (f x) c (hColor x)
+          calc χ ((SkipElement i).φ (f x)) = χ' (f x) := rfl
+            _ = χ₁ (f x) := (ite_eq_right hne).symm
+            _ = InvertRemoveColor (χ ⊤) c := h1
+
+      · push Not at h
+        classical
+        have htop : (⊤ : BooleanLattice (k + 2)) ≠ ∅ := by
+          rw [Finset.top_eq_univ]; exact Finset.univ_nonempty.ne_empty
+        let S : Finset (BooleanLattice (k + 2)) :=
+          Finset.univ.filter (fun s ↦ s ≠ ∅ ∧ χ s = χ ⊤)
+        have hSne : S.Nonempty :=
+          ⟨⊤, Finset.mem_filter.2 ⟨Finset.mem_univ _, htop, rfl⟩⟩
+        obtain ⟨s₀, hs₀, hmin⟩ := Finset.exists_min_image S Finset.card hSne
+        simp only [S, Finset.mem_filter, Finset.mem_univ, true_and] at hs₀ hmin
+        obtain ⟨hs₀ne, hs₀c⟩ := hs₀
+        obtain ⟨i, hi⟩ := Finset.nonempty_iff_ne_empty.2 hs₀ne
+        obtain ⟨t, htne, htc, hit⟩ := h i
+
+        obtain ⟨T, hT⟩ : ∃ T : BooleanLattice (k + 2), T = ⊤ := ⟨_, rfl⟩
+        have hs₀T : s₀ ⊆ T := by rw [hT]; exact le_top
+        have htT  : t ⊆ T  := by rw [hT]; exact le_top
+        have hTc  : χ T = χ ⊤ := by rw [hT]
+        have h01 : ¬ s₀ ⊆ t := fun hsub ↦ hit (hsub hi)
+        have h10 : ¬ t ⊆ s₀ := by
+          intro hsub
+          have hle : s₀.card ≤ t.card := hmin t ⟨Finset.Nonempty.ne_empty htne, htc⟩
+          exact hit ((Finset.eq_of_subset_of_card_le hsub hle) ▸ hi)
+        have h20 : ¬ T ⊆ s₀ := fun hsub ↦ h10 (htT.trans hsub)
+        have h21 : ¬ T ⊆ t  := fun hsub ↦ h01 (hs₀T.trans hsub)
+        let f : Wedge 2 → BooleanLattice (k + 2) :=
+          fun w ↦ if w.val = 0 then s₀ else if w.val = 1 then t else T
+        have hf : ∀ p q : Wedge 2, WedgeOrder p q ↔ f p ≤ f q := by
+          intro p q
+          obtain ⟨a, ha⟩ := p
+          obtain ⟨b, hb⟩ := q
+          interval_cases a <;> interval_cases b <;>
+            simp [WedgeOrder, f, h01, h10, h20, h21, hs₀T, htT]
+        refine ⟨χ ⊤, f, ⟨?_, hf⟩, ?_⟩
+        · intro p q hpq
+          exact le_antisymm ((hf p q).2 hpq.le) ((hf q p).2 hpq.symm.le)
+        · intro x
+          obtain ⟨a, ha⟩ := x
+          interval_cases a <;> simp [f, hs₀c, htc, hTc]
+
 
 --R (F2, k) = k+1
 theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (Wedge 2) k k := by
