@@ -11,37 +11,15 @@ import Mathlib.Tactic.Linter.Header
 /-! ... -/
 set_option linter.flexible false
 
-
 theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
     ∃! (N : ℕ), IsMulticolorRamseyNumber P k N := by
   sorry
 
 /-
-Defines a structure containing an injective map from Fin n to Fin m.
--/
-structure FinMap where
-  n : ℕ
-  m : ℕ
-  f : Fin n → Fin m
-  injective : Function.Injective f
-
-/-
-Defines a structure containing an injective, order-preserving map from Q_n to Q_m.
--/
-structure BooleanLatticeMap where
-  n : ℕ
-  m : ℕ
-  φ : BooleanLattice n → BooleanLattice m
-  injective : Function.Injective φ
-  induced : ∀ (s t : BooleanLattice n), s ≤ t ↔ φ s ≤ φ t
-
-/-
 Any FinMap can be extended to a BooleanLatticeMap, where the FinMap is simply applied to all
 elements.
 -/
-def Extend (map : FinMap) : BooleanLatticeMap where
-  n := map.n
-  m := map.m
+def Extend {n m : ℕ} (map : FinMap n m) : BooleanLatticeMap n m where
   φ := Finset.map ⟨map.f, map.injective⟩
   injective := by apply Finset.map_injective
   induced := by
@@ -63,46 +41,33 @@ def Extend (map : FinMap) : BooleanLatticeMap where
       exact haft
 
 /-
-A permutation is one such injective map.
--/
-def Permute {n : ℕ} (σ : Equiv.Perm (Fin n)) : FinMap where
-  n := n
-  m := n
-  f := σ
-  injective := Equiv.injective σ
-
-/-
 The identity function from Fin n to Fin m, where n ≤ m, is one such injective map.
 -/
-def ProjectUp {n m : ℕ} (h : n ≤ m) : FinMap where
-  n := n
-  m := m
+def ProjectUp {n m : ℕ} (h : n ≤ m) : FinMap n m where
   f := Fin.castLE h
   injective := Fin.castLE_injective h
 
 /-
 The corresponding embedding.
 -/
-abbrev EmbedUp {n m : ℕ} (h : n ≤ m) : BooleanLatticeMap := Extend (ProjectUp h)
+abbrev EmbedUp {n m : ℕ} (h : n ≤ m) : BooleanLatticeMap n m := Extend (ProjectUp h)
 
 /-
 The function from Fin n to Fin (n+1) that skips some element of Fin (n+1) is one such injective map.
 -/
-def AddOne {n : ℕ} (i : Fin (n + 1)) : FinMap where
-  n := n
-  m := n + 1
+def AddOne {n : ℕ} (i : Fin (n + 1)) : FinMap n (n + 1) where
   f := i.succAbove
   injective := Fin.succAbove_right_injective
 
 /-
 The corresponding embedding.
 -/
-abbrev SkipElement {n : ℕ} (i : Fin (n + 1)) : BooleanLatticeMap := Extend (AddOne i)
+abbrev SkipElement {n : ℕ} (i : Fin (n + 1)) : BooleanLatticeMap n (n + 1) := Extend (AddOne i)
 
 /-
 Proves that this embedding always skips the element i.
 -/
-lemma ItActuallySkips {n : ℕ} (i : Fin (n + 1)) : ∀ (x : BooleanLattice (SkipElement i).n),
+lemma ItActuallySkips {n : ℕ} (i : Fin (n + 1)) : ∀ (x : BooleanLattice n),
     i ∉ (SkipElement i).φ x := by
   intro x hi
   rcases Finset.mem_map.mp hi with ⟨a, hax, hai⟩
@@ -112,8 +77,8 @@ lemma ItActuallySkips {n : ℕ} (i : Fin (n + 1)) : ∀ (x : BooleanLattice (Ski
 Give an k-coloring on a boolean cube Q_m and a map from Q_n to Q_m, it extends the coloring to Q_n
 by transferring it over the map.
 -/
-abbrev RestrictColoring {k : ℕ} (map : BooleanLatticeMap) (χ : Coloring k (BooleanLattice map.m)) :
-    Coloring k (BooleanLattice map.n) :=
+abbrev RestrictColoring {k n m : ℕ} (map : BooleanLatticeMap n m)
+    (χ : Coloring k (BooleanLattice m)) : Coloring k (BooleanLattice n) :=
   fun x ↦ χ (map.φ x)
 
 /-
@@ -235,17 +200,108 @@ theorem wedge_ne_empty {m : ℕ} {f : Wedge 2 → BooleanLattice m}
   simp [WedgeOrder] at h0 h1
   omega
 
-theorem WedgeIgnoreEmptySet {m : ℕ} {f : Wedge 2 → BooleanLattice m}
-    (hf : IsInducedCopy f) (x : Wedge 2) : f x ≠ ∅ := by
-  intro hx
-  obtain ⟨a, ha⟩ := x
-  have key : ∀ y : Wedge 2, WedgeOrder ⟨a, ha⟩ y := by
-    intro y
-    exact (hf.2 _ y).2 (by rw [hx]; exact Finset.empty_subset _)
-  have h0 := key ⟨0, by decide⟩
-  have h1 := key ⟨1, by decide⟩
-  simp [WedgeOrder] at h0 h1
-  omega
+/-
+Proves that R(F_2; k) ≤ N ↔ R*(F_2; k) ≤ N.
+-/
+lemma WedgeIgnoreEmptySet {k N : ℕ} (hk : k ≥ 1) :
+    IsMulticolorRamseyUpperBound (Wedge 2) k N ↔ IsModifiedRamseyUpperBound (Wedge 2) k N := by
+  constructor
+  · intro hRamsey χ
+    let χ' : Coloring k (BooleanLattice N) := fun s ↦ if h : s = ∅ then Fin.mk 0 hk else χ ⟨s, h⟩
+    rcases hRamsey χ' with ⟨c, f, hfInduced, hfColor⟩
+    let f' : Wedge 2 → NonemptyBooleanLattice N := fun x ↦ ⟨f x, wedge_ne_empty hfInduced x⟩
+    use c, f'
+    constructor
+    · rcases hfInduced with ⟨hfInj, hfInd⟩
+      constructor
+      · intro x y hxy
+        apply hfInj
+        exact congrArg Subtype.val hxy
+      · exact hfInd
+    · intro x
+      have hNonempty : f x ≠ ∅ := wedge_ne_empty hfInduced x
+      calc
+        χ (f' x) = χ' (f x) := by simp [χ', hNonempty, f']
+        _ = c := hfColor x
+  · intro hRamsey χ
+    rcases hRamsey (χ ∘ Subtype.val) with ⟨c, f, ⟨hfInj, hfInd⟩, hfColor⟩
+    use c, (Subtype.val ∘ f)
+    constructor
+    · constructor
+      · exact Function.Injective.comp Subtype.val_injective hfInj
+      · exact hfInd
+    · exact hfColor
+
+/-
+Proves that if b > 0, R(P^a, F_2^b) ≤ N ↔ R*(P^a, F_2^b) ≤ N.
+-/
+lemma MixedIgnoreEmptySet {a b N : ℕ} {P : Type} [PartialOrder P] (hb : b > 0) :
+    IsMixedRamseyUpperBound P (Wedge 2) a b N ↔ IsModifiedMixedRamseyUpperBound P (Wedge 2) a b N
+    := by
+  constructor
+  · intro hRamsey χ
+    let cola : Fin (a + b) := Fin.mk a (by linarith)
+    let χ' : Coloring (a + b) (BooleanLattice N) :=
+      fun s ↦ if h : s = ∅ then cola else χ ⟨s, h⟩
+    rcases hRamsey χ' with hP | hWedge
+    · left
+      rcases hP with ⟨c, hc, f, hfInduced, hfColor⟩
+      have hNonempty : ∀ (x : P), f x ≠ ∅ := by
+        intro x hEmpty
+        specialize hfColor x
+        simp [χ', hEmpty] at (hfColor)
+        rw [←hfColor] at hc
+        unfold FirstAofK at hc
+        simp at hc
+        change a < a at hc
+        linarith
+      let f' : P → NonemptyBooleanLattice N := fun x ↦ ⟨f x, hNonempty x⟩
+      use c, hc, f'
+      constructor
+      · rcases hfInduced with ⟨hfInj, hfInd⟩
+        constructor
+        · intro x y hxy
+          apply hfInj
+          exact congrArg Subtype.val hxy
+        · exact hfInd
+      · intro x
+        calc
+          χ (f' x) = χ' (f x) := by simp [χ', hNonempty, f']
+          _ = c := hfColor x
+    · right
+      rcases hWedge with ⟨c, hc, f, hfInduced, hfColor⟩
+      let f' : Wedge 2 → NonemptyBooleanLattice N := fun x ↦ ⟨f x, wedge_ne_empty hfInduced x⟩
+      use c, hc, f'
+      constructor
+      · rcases hfInduced with ⟨hfInj, hfInd⟩
+        constructor
+        · intro x y hxy
+          apply hfInj
+          exact congrArg Subtype.val hxy
+        · exact hfInd
+      · intro x
+        have hNonempty : f x ≠ ∅ := wedge_ne_empty hfInduced x
+        calc
+          χ (f' x) = χ' (f x) := by simp [χ', hNonempty, f']
+          _ = c := hfColor x
+  · intro hRamsey χ
+    rcases hRamsey (χ ∘ Subtype.val) with hP | hWedge
+    · left
+      rcases hP with ⟨c, hc, f, ⟨hfInj, hfInd⟩, hfColor⟩
+      use c, hc, (Subtype.val ∘ f)
+      constructor
+      · constructor
+        · exact Function.Injective.comp Subtype.val_injective hfInj
+        · exact hfInd
+      · exact hfColor
+    · right
+      rcases hWedge with ⟨c, hc, f, ⟨hfInj, hfInd⟩, hfColor⟩
+      use c, hc, (Subtype.val ∘ f)
+      constructor
+      · constructor
+        · exact Function.Injective.comp Subtype.val_injective hfInj
+        · exact hfInd
+      · exact hfColor
 
 theorem IsInducedCopy.comp {P Q R : Type} [PartialOrder P] [PartialOrder Q] [PartialOrder R]
     {f : P → Q} {g : Q → R} (hf : IsInducedCopy f) (hg : IsInducedCopy g) :
@@ -258,27 +314,13 @@ theorem SkipElement_isInducedCopy {k : ℕ} (i : Fin (k + 2)) :
     show a ⊆ b ↔ (SkipElement i).φ a ⊆ (SkipElement i).φ b
     exact Finset.map_subset_map.symm⟩
 
-
-theorem RemoveColor_succAbove {k : ℕ} (c a : Fin (k + 1)) (h : a ≠ c) :
-    c.succAbove (RemoveColor c a h) = a := by
-  unfold RemoveColor
-  by_cases hc : c = Fin.last k
-  · rw [dite_eq_left hc]
-    subst hc
-    rw [Fin.succAbove_last]
-    exact Fin.castSucc_castPred _ _
-  · rw [dite_eq_right hc]
-    have hcc : (c.castPred hc).castSucc = c := Fin.castSucc_castPred c hc
-    have key := Fin.succAbove_predAbove (p := c.castPred hc) (i := a)
-      (by rw [hcc]; exact h)
-    rwa [hcc] at key
 theorem ShrinkColoring_spec {k : ℕ} {V : Type} (χ : Coloring (k + 1) V) (c : Fin (k + 1))
     (h : ∀ x, χ x ≠ c) (x : V) (c' : Fin k)
     (hx : ShrinkColoring χ c h x = c') :
     χ x = InvertRemoveColor c c' := by
   change RemoveColor c (χ x) (h x) = c' at hx
   rw [← hx]
-  exact (RemoveColor_succAbove c (χ x) (h x)).symm
+  exact (RemovingIsInvertible c (χ x) (h x)).symm
 
 set_option linter.style.haveILetI false in
 theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (Wedge 2) k (k + 1) := by
@@ -357,7 +399,6 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
           calc χ ((SkipElement i).φ (f x)) = χ' (f x) := rfl
             _ = χ₁ (f x) := (ite_eq_right hne).symm
             _ = InvertRemoveColor (χ ⊤) c := h1
-
       · push Not at h
         classical
         have htop : (⊤ : BooleanLattice (k + 2)) ≠ ∅ := by
@@ -371,7 +412,6 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
         obtain ⟨hs₀ne, hs₀c⟩ := hs₀
         obtain ⟨i, hi⟩ := Finset.nonempty_iff_ne_empty.2 hs₀ne
         obtain ⟨t, htne, htc, hit⟩ := h i
-
         obtain ⟨T, hT⟩ : ∃ T : BooleanLattice (k + 2), T = ⊤ := ⟨_, rfl⟩
         have hs₀T : s₀ ⊆ T := by rw [hT]; exact le_top
         have htT  : t ⊆ T  := by rw [hT]; exact le_top
@@ -397,7 +437,6 @@ theorem FanUpperBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyUpperBound (W
         · intro x
           obtain ⟨a, ha⟩ := x
           interval_cases a <;> simp [f, hs₀c, htc, hTc]
-
 
 --R (F2, k) = k+1
 theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (Wedge 2) k k := by
@@ -499,6 +538,21 @@ lemma ObviousLemma {P Q : Type} [PartialOrder P] [PartialOrder Q] {a N : ℕ} :
       exact ⟨Fintype.complete c, c.isLt⟩
     · exact hc
 
+lemma ObviousLemma2 {P Q : Type} [PartialOrder P] [PartialOrder Q] {a b N : ℕ} :
+    IsMixedRamseyUpperBound P Q a b N ↔ IsMixedRamseyUpperBound Q P b a N := by
+  constructor
+  · intro hMixed χ
+    rw [add_comm] at χ
+    rcases hMixed (Fin.rev ∘ χ) with hP | hQ
+    · right
+      rcases hP with ⟨c, hc, h⟩
+      rw [add_comm] at c
+      simp [FirstAofK] at hc
+      sorry
+    sorry
+  sorry
+
+
 /-
 The mixed Ramsey number used in our main upper bound lemma.
 -/
@@ -513,7 +567,7 @@ Our main upper bound lemma: R(Q_2^a, D_2^b) ≤ the number specified above.
 lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 →
     IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) a b (MixedRamseyNumber a b) := by
   intro a b ha
-  sorry
+  induction
 
 -- Nat.le_iff_lt_add_one.mp (Finset.card_le_univ x)
 
@@ -540,7 +594,8 @@ def LayerColoring (k : ℕ) (hk : k ≥ 1) : Coloring k (BooleanLattice (2 * k -
 /-
 R(Q_2; k) ≥ 2k.
 -/
-lemma MainTheoremLower : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyLowerBound (Diamond 2) k (2*k-1) := by
+lemma MainTheoremLower : ∀ (k : ℕ), k ≥ 1 →
+    IsMulticolorRamseyLowerBound (Diamond 2) k (2 * k - 1) := by
   intro k hk
   use LayerColoring k hk
   unfold HasMonochromeSubposet
@@ -555,7 +610,7 @@ lemma MainTheoremUpper : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyUpperBound
   intro k hk
   have h := MainLemma k 0 (hk)
   have hN : MixedRamseyNumber k 0 = 2 * k := rfl
-  rw[hN] at h
+  rw [hN] at h
   exact ObviousLemma.mp h
 
 /-

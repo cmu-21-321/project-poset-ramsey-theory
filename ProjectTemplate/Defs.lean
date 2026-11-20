@@ -142,7 +142,24 @@ instance (n : ℕ) : PartialOrder (Wedge n) where
   le_trans := WedgeTrans
   le_antisymm := WedgeAntisymm
 
-def Coloring (k : ℕ) (V : Type) : Type := V → (Fin k)
+abbrev Coloring (k : ℕ) (V : Type) : Type := V → (Fin k)
+
+/-
+Defines a structure containing an injective map from Fin n to Fin m.
+-/
+structure FinMap (n m : ℕ) where
+  f : Fin n → Fin m
+  injective : Function.Injective f
+
+/-
+Defines a structure containing an injective, order-preserving map from P to Q.
+-/
+structure InducedMap (P Q : Type) [PartialOrder P] [PartialOrder Q] where
+  φ : P → Q
+  injective : Function.Injective φ
+  induced : ∀ (s t : P), s ≤ t ↔ φ s ≤ φ t
+
+abbrev BooleanLatticeMap (n m : ℕ) := InducedMap (BooleanLattice n) (BooleanLattice m)
 
 /-
 A condition on a mapping f from a poset P to a poset Q such that it defines an induced
@@ -162,26 +179,26 @@ def HasMonochromeSubposet (P Q : Type) [PartialOrder P] [PartialOrder Q] (k : �
 /-
 Equivalent to the statement that R(P; k) ≤ N.
 -/
-def IsMulticolorRamseyUpperBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+def IsMulticolorRamseyUpperBound (P : Type) [PartialOrder P] (k N : ℕ) : Prop :=
   ∀ (χ : Coloring k (BooleanLattice N)), HasMonochromeSubposet P (BooleanLattice N) k χ
 
 /-
 Equivalent to the statement that R(P; k) ≥ N.
 -/
-def IsMulticolorRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+def IsMulticolorRamseyLowerBound (P : Type) [PartialOrder P] (k N : ℕ) : Prop :=
   ∃ (χ : Coloring k (BooleanLattice N)), ¬HasMonochromeSubposet P (BooleanLattice N) k χ
 
 /-
 Equivalent to the statement that R*(P; k) ≤ N.
 -/
-def IsModifiedRamseyUpperBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+def IsModifiedRamseyUpperBound (P : Type) [PartialOrder P] (k N : ℕ) : Prop :=
   ∀ (χ : Coloring k (NonemptyBooleanLattice N)),
   HasMonochromeSubposet P (NonemptyBooleanLattice N) k χ
 
 /-
 Equivalent to the statement that R(P; k) = N.
 -/
-def IsMulticolorRamseyNumber (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+def IsMulticolorRamseyNumber (P : Type) [PartialOrder P] (k N : ℕ) : Prop :=
   IsMulticolorRamseyLowerBound P k (N - 1) ∧ IsMulticolorRamseyUpperBound P k N
 
 /-
@@ -206,7 +223,7 @@ def LastBofK (b k : ℕ) : Finset (Fin k) := Finset.univ.filter (fun x ↦ x.val
 Equivalent to the statement that R(P^a, Q^b) ≤ N.
 -/
 def IsMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
-    (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∀ (χ : Coloring (a + b) (BooleanLattice N)),
+    (a b N : ℕ) : Prop := ∀ (χ : Coloring (a + b) (BooleanLattice N)),
   HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
   HasSpecifiedMonochromeSubposet Q (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
@@ -214,7 +231,7 @@ def IsMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
 Equivalent to the statement that R*(P^a, Q^b) ≤ N.
 -/
 def IsModifiedMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
-    (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∀ (χ : Coloring (a + b) (NonemptyBooleanLattice N)),
+    (a b N : ℕ) : Prop := ∀ (χ : Coloring (a + b) (NonemptyBooleanLattice N)),
   HasSpecifiedMonochromeSubposet P (NonemptyBooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∨
   HasSpecifiedMonochromeSubposet Q (NonemptyBooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
@@ -224,7 +241,7 @@ def IsModifiedMixedRamseyUpperBound (P Q : Type) [PartialOrder P] [PartialOrder 
 /-
 Equivalent to the statement that R*(P; k) ≥ N.
 -/
-def IsModifiedRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) : Prop :=
+def IsModifiedRamseyLowerBound (P : Type) [PartialOrder P] (k N : ℕ) : Prop :=
   ∃ (χ : Coloring k (NonemptyBooleanLattice N)),
   ¬HasMonochromeSubposet P (NonemptyBooleanLattice N) k χ
 
@@ -232,7 +249,7 @@ def IsModifiedRamseyLowerBound (P : Type) [PartialOrder P] (k : ℕ) (N : ℕ) :
 Equivalent to the statement that R(P^a, Q^b) ≥ N.
 -/
 def IsMixedRamseyLowerBound (P Q : Type) [PartialOrder P] [PartialOrder Q]
-    (a : ℕ) (b : ℕ) (N : ℕ) : Prop := ∃ (χ : Coloring (a + b) (BooleanLattice N)),
+    (a b N : ℕ) : Prop := ∃ (χ : Coloring (a + b) (BooleanLattice N)),
   ¬HasSpecifiedMonochromeSubposet P (BooleanLattice N) (a + b) χ (FirstAofK a (a + b)) ∧
   ¬HasSpecifiedMonochromeSubposet Q (BooleanLattice N) (a + b) χ (LastBofK b (a + b))
 
@@ -248,5 +265,5 @@ def IsModifiedMixedRamseyLowerBound (P Q : Type) [PartialOrder P] [PartialOrder 
 Equivalent to the statement that R(P^a, Q^b) = N.
 -/
 def IsMixedRamseyNumber (P Q : Type) [PartialOrder P] [PartialOrder Q]
-    (a : ℕ) (b : ℕ) (N : ℕ) : Prop :=
+    (a b N : ℕ) : Prop :=
   IsMixedRamseyLowerBound P Q a b N ∧ IsMixedRamseyUpperBound P Q a b N
