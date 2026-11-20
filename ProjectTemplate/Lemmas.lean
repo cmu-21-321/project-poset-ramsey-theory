@@ -11,9 +11,6 @@ import Mathlib.Tactic.Linter.Header
 /-! ... -/
 set_option linter.flexible false
 
-theorem ExistsUniqueRamsey (P : Type) [PartialOrder P] (k : ℕ) :
-    ∃! (N : ℕ), IsMulticolorRamseyNumber P k N := by
-  sorry
 
 /-
 Any FinMap can be extended to a BooleanLatticeMap, where the FinMap is simply applied to all
@@ -567,7 +564,8 @@ Our main upper bound lemma: R(Q_2^a, D_2^b) ≤ the number specified above.
 lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 →
     IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) a b (MixedRamseyNumber a b) := by
   intro a b ha
-  induction
+  --induction
+  sorry
 
 -- Nat.le_iff_lt_add_one.mp (Finset.card_le_univ x)
 
@@ -601,7 +599,37 @@ lemma MainTheoremLower : ∀ (k : ℕ), k ≥ 1 →
   unfold HasMonochromeSubposet
   push Not
   intro c f hf
-  sorry
+  by_contra hcon
+  have hall : ∀ x, LayerColoring k hk (f x) = c := by
+      intro x
+      by_contra hne
+      exact hcon ⟨x, hne⟩
+  obtain ⟨b, hb⟩ : ∃ b : Diamond 2, b.val = 0 := ⟨⟨0, by decide⟩, rfl⟩
+  obtain ⟨x, hx⟩ : ∃ x : Diamond 2, x.val = 1 := ⟨⟨1, by decide⟩, rfl⟩
+  obtain ⟨t, ht⟩ : ∃ t : Diamond 2, t.val = 2 + 1 := ⟨⟨2 + 1, by decide⟩, rfl⟩
+  have hbx : b ≤ x := Or.inl hb
+  have hxt : x ≤ t := Or.inr (Or.inl ht)
+  have hbx_ne : b ≠ x := fun h ↦ by
+    rw [h] at hb
+    omega
+  have hxt_ne : x ≠ t := fun h ↦ by
+    rw [h] at hx
+    omega
+  have hsub1 : f b ⊆ f x := (hf.2 b x).1 hbx
+  have hsub2 : f x ⊆ f t := (hf.2 x t).1 hxt
+  have hss1 : f b ⊂ f x :=
+    Finset.ssubset_iff_subset_ne.2 ⟨hsub1, hf.1.ne hbx_ne⟩
+  have hss2 : f x ⊂ f t :=
+    Finset.ssubset_iff_subset_ne.2 ⟨hsub2, hf.1.ne hxt_ne⟩
+  have hc1 := Finset.card_lt_card hss1
+  have hc2 := Finset.card_lt_card hss2
+  -- all three have the same color, i.e. the same card / 2
+  have hcb := congrArg Fin.val (hall b)
+  have hct := congrArg Fin.val (hall t)
+  change (f b).card / 2 = c.val at hcb
+  change (f t).card / 2 = c.val at hct
+  omega
+
 
 /-
 R(Q_2; k) ≤ 2k.
