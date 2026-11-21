@@ -185,7 +185,28 @@ lemma ShrinkPreserve {P Q : Type} [PartialOrder P] [Nonempty P] [PartialOrder Q]
           (RemovingIsInvertible c (χ (f x)) (hMiss (f x))).symm
         _ = InvertRemoveColor c d := by rw [hColor]
 
-theorem wedge_ne_empty {m : ℕ} {f : Wedge 2 → BooleanLattice m}
+/-
+If a coloring of R has monochrome induced copies of P and Q in some specified colors, then permuting
+the colors preserves this property.
+-/
+lemma CanPermuteColoring {P Q R : Type} [PartialOrder P] [PartialOrder Q] [PartialOrder R]
+    (k : ℕ) (setA setB : Finset (Fin k)) (χ : Coloring k R) (σ : Equiv.Perm (Fin k)) :
+    HasSpecifiedMonochromeSubposet P R k χ setA ∨ HasSpecifiedMonochromeSubposet Q R k χ setB →
+    HasSpecifiedMonochromeSubposet P R k (σ ∘ χ) (Finset.image σ setA) ∨
+    HasSpecifiedMonochromeSubposet Q R k (σ ∘ χ) (Finset.image σ setB) := by
+  intro h
+  rcases h with ⟨c, hc, f, hInduced, hColor⟩ | ⟨c, hc, f, hInduced, hColor⟩
+  · left
+    use σ c, Finset.mem_image_of_mem σ hc, f
+    exact ⟨hInduced, fun x ↦ congrArg σ (hColor x)⟩
+  · right
+    use σ c, Finset.mem_image_of_mem σ hc, f
+    exact ⟨hInduced, fun x ↦ congrArg σ (hColor x)⟩
+
+/-
+Proves that no induced map of F_2 into Q_n has ∅ in its image.
+-/
+lemma wedge_ne_empty {m : ℕ} {f : Wedge 2 → BooleanLattice m}
     (hf : IsInducedCopy f) (x : Wedge 2) : f x ≠ ∅ := by
   intro hx
   obtain ⟨a, ha⟩ := x
@@ -524,10 +545,7 @@ lemma ObviousLemma {P Q : Type} [PartialOrder P] [PartialOrder Q] {a N : ℕ} :
       exact ge_iff_le.mp hca
   · intro hRamsey χ
     left
-    unfold HasSpecifiedMonochromeSubposet
-    unfold IsMulticolorRamseyUpperBound at hRamsey
     specialize hRamsey χ
-    unfold HasMonochromeSubposet at hRamsey
     rcases hRamsey with ⟨c, hc⟩
     use c
     constructor
@@ -535,39 +553,70 @@ lemma ObviousLemma {P Q : Type} [PartialOrder P] [PartialOrder Q] {a N : ℕ} :
       exact ⟨Fintype.complete c, c.isLt⟩
     · exact hc
 
-lemma ObviousLemma2 {P Q : Type} [PartialOrder P] [PartialOrder Q] {a b N : ℕ} :
-    IsMixedRamseyUpperBound P Q a b N ↔ IsMixedRamseyUpperBound Q P b a N := by
+/-
+The symmetric version of the previous lemma.
+-/
+lemma ObviousLemma2 {P Q : Type} [PartialOrder P] [PartialOrder Q] {b N : ℕ} :
+    IsMixedRamseyUpperBound P Q 0 b N ↔ IsMulticolorRamseyUpperBound Q b N := by
   constructor
   · intro hMixed χ
-    rw [add_comm] at χ
-    rcases hMixed (Fin.rev ∘ χ) with hP | hQ
-    · right
-      rcases hP with ⟨c, hc, h⟩
-      rw [add_comm] at c
+    rcases hMixed (Fin.cast (zero_add b).symm ∘ χ) with hasP | hasQ
+    · rcases hasP with ⟨c, hc, _⟩
       simp [FirstAofK] at hc
-      sorry
-    sorry
-  sorry
-
+    · rcases hasQ with ⟨c, hc, f, hInduced, hColor⟩
+      use c.cast (zero_add b), f
+      constructor
+      · assumption
+      · intro x
+        specialize hColor x
+        calc
+          χ (f x) = Fin.cast (zero_add b) ((Fin.cast (zero_add b).symm ∘ χ) (f x)) := rfl
+          _ = Fin.cast (zero_add b) c := by rw [hColor]
+  · intro hRamsey χ
+    right
+    specialize hRamsey (Fin.cast (zero_add b) ∘ χ)
+    rcases hRamsey with ⟨c, f, hInduced, hColor⟩
+    use c.cast (zero_add b).symm
+    constructor
+    · apply Finset.mem_filter.mpr
+      constructor
+      · apply Finset.mem_univ
+      · simp
+    · use f
+      constructor
+      · assumption
+      · intro x
+        specialize hColor x
+        calc
+          χ (f x) = Fin.cast (zero_add b).symm ((Fin.cast (zero_add b) ∘ χ) (f x)) := rfl
+          _ = Fin.cast (zero_add b).symm c := by rw [hColor]
 
 /-
 The mixed Ramsey number used in our main upper bound lemma.
 -/
-def MixedRamseyNumber (a b : ℕ) : ℕ :=
-  match b with
-  | .zero => 2 * a
-  | .succ _ => 2 * a + b + 1
+abbrev MixedRamseyNumber (a b : ℕ) : ℕ :=
+  if b = 0 then 2 * a else 2 * a + b + 1
 
 /-
 Our main upper bound lemma: R(Q_2^a, D_2^b) ≤ the number specified above.
 -/
-lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 →
+lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 ∨ b ≥ 1 →
     IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) a b (MixedRamseyNumber a b) := by
-  intro a b ha
-  --induction
-  sorry
-
--- Nat.le_iff_lt_add_one.mp (Finset.card_le_univ x)
+  intro a b hab
+  induction a with
+  | zero =>
+      rcases hab with ha | hb
+      · trivial
+      · have hnonzero : b ≠ 0 := by linarith
+        simp [MixedRamseyNumber, hnonzero]
+        exact ObviousLemma2.mpr (FanUpperBound b hb)
+  | succ a ih =>
+      induction b with
+      | zero =>
+          rcases hab with ha | hbad
+          · sorry
+          · trivial
+      | succ b ih2 => sorry
 
 /-
 Defines the coloring of Q_(2k-1) where each color gets two layers, which is used in the lower bound
@@ -636,7 +685,7 @@ R(Q_2; k) ≤ 2k.
 -/
 lemma MainTheoremUpper : ∀ (k : ℕ), k ≥ 1 → IsMulticolorRamseyUpperBound (Diamond 2) k (2 * k) := by
   intro k hk
-  have h := MainLemma k 0 (hk)
+  have h := MainLemma k 0 (Or.inl hk)
   have hN : MixedRamseyNumber k 0 = 2 * k := rfl
   rw [hN] at h
   exact ObviousLemma.mp h
