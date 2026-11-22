@@ -191,19 +191,38 @@ theorem FanLowerBound (k : ℕ) (hk : k ≥ 1) : IsMulticolorRamseyLowerBound (W
     have hAC : A.card = C.card := by omega
     exact hAnC ((Finset.subset_iff_eq_of_card_le (ge_of_eq hAC)).mp hA)
 
-/-
-The mixed Ramsey number used in our main upper bound lemma.
--/
-abbrev MixedRamseyNumber (a b : ℕ) : ℕ :=
-  if b = 0 then 2 * a else 2 * a + b + 1
 
-lemma MainZero (a : ℕ) : MixedRamseyNumber a 0 = 2 * a := by
-  unfold MixedRamseyNumber
-  rw [ite_eq_left rfl]
 
-lemma MainPos {a b : ℕ} (hb : b ≠ 0) : MixedRamseyNumber a b = 2 * a + b + 1 := by
-  unfold MixedRamseyNumber
-  rw [ite_eq_right hb]
+
+lemma Case_SingletonQ2 (a b N : ℕ) (hN : N = 2 * a + b + 4)
+    (IH : IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) a (b + 2)
+            (MixedRamseyNumber a (b + 2)))
+    (χ : Coloring (a + 1 + (b + 1)) (BooleanLattice N))
+    (S : BooleanLattice N) (hS : S.card = 1) (hc : (χ S).val < a + 1) :
+    HasSpecifiedMonochromeSubposet (Diamond 2) (BooleanLattice N) (a + 1 + (b + 1)) χ
+      (FirstAofK (a + 1) (a + 1 + (b + 1))) ∨
+    HasSpecifiedMonochromeSubposet (Wedge 2) (BooleanLattice N) (a + 1 + (b + 1)) χ
+      (LastBofK (b + 1) (a + 1 + (b + 1))) := by
+  obtain ⟨M, rfl⟩ : ∃ M, N = M + 1 := ⟨2 * a + b + 3, by omega⟩
+  have e : MixedRamseyNumber a (b + 2) = M := by
+    rw [MainPos (by omega)]; omega
+  rw [e] at IH
+  obtain ⟨i, rfl⟩ := Finset.card_eq_one.1 hS
+  exact SingletonQ2_core a b M
+    ((MixedIgnoreEmptySet (P := Diamond 2) (show b + 2 > 0 by omega)).1 IH) χ i hc
+
+lemma Case_NoSingletonQ2 (a b N : ℕ) (hN : N = 2 * a + b + 4)
+    (IH : IsMixedRamseyUpperBound (Diamond 2) (Wedge 2) (a + 1) b
+            (MixedRamseyNumber (a + 1) b))
+    (χ : Coloring (a + 1 + (b + 1)) (BooleanLattice N))
+    (h : ∀ S : BooleanLattice N, S.card = 1 → a + 1 ≤ (χ S).val) :
+    HasSpecifiedMonochromeSubposet (Diamond 2) (BooleanLattice N) (a + 1 + (b + 1)) χ
+      (FirstAofK (a + 1) (a + 1 + (b + 1))) ∨
+    HasSpecifiedMonochromeSubposet (Wedge 2) (BooleanLattice N) (a + 1 + (b + 1)) χ
+      (LastBofK (b + 1) (a + 1 + (b + 1))) := by
+  obtain ⟨M, rfl⟩ : ∃ M, N = M + 1 := ⟨2 * a + b + 3, by omega⟩
+  have hM : M = 2 * a + b + 3 := by omega
+  exact NoSingleton_core a b M (ModifiedFromMixed a b M hM IH) χ h
 
 /-
 Our main upper bound lemma: R(Q_2^a, D_2^b) ≤ the number specified above.
@@ -230,7 +249,20 @@ lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 ∨ b ≥ 1 →
       rw [hN]
       apply ObviousLemma.mpr
       sorry
-    | succ b ihb => sorry
+    | succ b ihb =>
+          intro χ
+          have hN : MixedRamseyNumber (a + 1) (b + 1) = 2 * a + b + 4 := by
+            rw [MainPos (by omega)]; omega
+          -- case on whether there is a set w Q2 avoiding color
+          by_cases hSingle : ∃ (S : BooleanLattice (MixedRamseyNumber (a + 1) (b + 1))),
+              S.card = 1 ∧ (χ S).val < a + 1
+          · obtain ⟨S, hS1, hSc⟩ := hSingle
+            exact Case_SingletonQ2 a b _ hN (iha (b + 2) (Or.inr (by omega))) χ S hS1 hSc
+          · -- hSingle : ∀ S, S.card = 1 → a + 1 ≤ (χ S).val
+            push Not at hSingle
+            exact Case_NoSingletonQ2 a b _ hN ihb χ hSingle
+
+
 
 /-
 Defines the coloring of Q_(2k-1) where each color gets two layers, which is used in the lower bound
