@@ -248,7 +248,34 @@ lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 ∨ b ≥ 1 →
       have hN : MixedRamseyNumber (a + 1) 0 = 2 * (a + 1) := MainZero (a + 1)
       rw [hN]
       apply ObviousLemma.mpr
-      sorry
+      intro χ
+      have h := CanPermuteColoring (FirstAofK a (a + 1)) (LastBofK 1 (a + 1)) ((Equiv.swap (χ ∅)
+      (Fin.last a)) ∘ χ) (Equiv.swap (χ ∅) (Fin.last a)) (h2 ((Equiv.swap (χ ∅) (Fin.last a)) ∘ χ))
+      rcases h with ⟨c, _, f, hfInduced, hColor⟩ | ⟨c, hc, f, hfInduced, hColor⟩
+      · use c, f
+        constructor
+        · assumption
+        · intro x
+          specialize hColor x
+          simp at hColor
+          assumption
+      · rcases diamond_of_wedge hfInduced (fun w ↦ Finset.empty_subset (f w))
+          (fun w h ↦ wedge_ne_empty hfInduced w (Finset.subset_empty.mp h)) with
+          ⟨g, hgInduced, hgColor⟩
+        use c, g
+        constructor
+        · assumption
+        · intro x
+          simp [LastBofK] at hc
+          rcases hc with ⟨y, hy, hswap⟩
+          have hya : y.val = a := le_antisymm (Nat.le_of_lt_add_one y.isLt) hy
+          rcases hgColor x with hEmpty | ⟨w, hw⟩
+          · have hylast : y = Fin.last a := Eq.symm (Fin.eq_of_val_eq (id (Eq.symm hya)))
+            simp [hylast] at hswap
+            rw [hEmpty, hswap]
+          · specialize hColor w
+            simp at hColor
+            rw [hw, hColor]
     | succ b ihb =>
           intro χ
           have hN : MixedRamseyNumber (a + 1) (b + 1) = 2 * a + b + 4 := by
@@ -262,7 +289,9 @@ lemma MainLemma : ∀ (a b : ℕ), a ≥ 1 ∨ b ≥ 1 →
             push Not at hSingle
             exact Case_NoSingletonQ2 a b _ hN ihb χ hSingle
 
-
+#check Finset.empty_subset
+#check Finset.subset_empty
+#check Nat.le_of_lt_add_one
 
 /-
 Defines the coloring of Q_(2k-1) where each color gets two layers, which is used in the lower bound

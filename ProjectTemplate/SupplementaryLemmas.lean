@@ -194,7 +194,7 @@ If a coloring of R has monochrome induced copies of P and Q in some specified co
 the colors preserves this property.
 -/
 lemma CanPermuteColoring {P Q R : Type} [PartialOrder P] [PartialOrder Q] [PartialOrder R]
-    (k : ℕ) (setA setB : Finset (Fin k)) (χ : Coloring k R) (σ : Equiv.Perm (Fin k)) :
+    {k : ℕ} (setA setB : Finset (Fin k)) (χ : Coloring k R) (σ : Equiv.Perm (Fin k)) :
     HasSpecifiedMonochromeSubposet P R k χ setA ∨ HasSpecifiedMonochromeSubposet Q R k χ setB →
     HasSpecifiedMonochromeSubposet P R k (σ ∘ χ) (Finset.image σ setA) ∨
     HasSpecifiedMonochromeSubposet Q R k (σ ∘ χ) (Finset.image σ setB) := by
