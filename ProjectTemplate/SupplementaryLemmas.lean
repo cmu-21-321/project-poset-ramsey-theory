@@ -418,6 +418,7 @@ lemma MainPos {a b : ℕ} (hb : b ≠ 0) : MixedRamseyNumber a b = 2 * a + b + 1
   unfold MixedRamseyNumber
   rw [ite_eq_right hb]
 
+
 /-- Adding `i` back to the image of `SkipElement i` is still an induced embedding. -/
 lemma insert_skip_subset_iff {M : ℕ} (i : Fin (M + 1)) (s t : BooleanLattice M) :
     insert i ((SkipElement i).φ s) ⊆ insert i ((SkipElement i).φ t) ↔ s ⊆ t := by
