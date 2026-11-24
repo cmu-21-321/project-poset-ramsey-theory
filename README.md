@@ -1,6 +1,22 @@
 # ProjectTemplate
 
-A template for Lean 4 projects that depend on [Mathlib](https://github.com/leanprover-community/mathlib4).
+A formalization of a Ramsey-theoretic proof done in Lean4.
+
+## Collaboration Statment
+
+The written report and video were completed jointly. In the code, the definitions and lemmas were completed jointly, but proven separately.
+
+## AI Statment
+
+Claude AI (Sonnet 5.5) was used in 
+* Lemmas.lean
+  * FanUpperBound, to close the contradiction step and to delete i from the boolean lattice to generate a clean copy of Q<sub>k+1</sub>
+  * MainTheoremLower, to find proper tactics used to derive the contradiction
+  * Case_SingletonQ2, entirely vibecoded
+  * Case_NoSingletonQ2, entirely vibecoded
+* SupplementaryLemmas.lean
+  * insert_skip_subset_iff -> end, vibecoded In other words, lines 421-910.
+ 
 
 ## Prerequisites
 
@@ -65,20 +81,3 @@ opens a pull request if the update builds, or an issue if it doesn't. (Uncomment
   tick **Allow GitHub Actions to create and approve pull requests**.
 - To publish docs to GitHub Pages, set **Settings → Pages → Source** to "GitHub Actions" and
   uncomment the `docgen-action` line in `lean_action_ci.yml`.
-
-
-##Collaboration Statement
-
-The written report was completed jointly.
-As for the code, the definitions were completed jointly and we individually completed sublemmas relevant to the main lemma.
-
-##AI Statment
-
-Claude AI (Sonnet 5.5) was used in 
-* Lemmas.lean
-  * FanUpperBound, to close the contradiction step and to delete i from the boolean lattice to generate a clean copy of Q<sub>k+1</sub>
-  * MainTheoremLower, to find proper tactics used to derive the contradiction
-  * Case_SingletonQ2, entirely vibecoded
-  * Case_NoSingletonQ2, entirely vibecoded
-* SupplementaryLemmas.lean
-  * insert_skip_subset_iff -> end, vibecoded In other words, lines 421-910.
